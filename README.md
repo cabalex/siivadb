@@ -1,4 +1,4 @@
-# [SIivaDB](https://cabalex.github.io/siivadb)
+# [SiIvaDB](https://cabalex.github.io/siivadb)
 
 A database for browsing [SiIvaGunner's](https://www.youtube.com/@SiIvaGunner) thousands of high quality rips.
 
