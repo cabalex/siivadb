@@ -19,8 +19,15 @@
 
         const comment = comments[index];
 
-        elem.style.top = `${Math.max(200, Math.random() * (window.innerHeight / 2)) + 20}px`;
-        elem.style.right = `${Math.random() * (window.innerWidth / 8) + 50}px`;
+        if (window.innerWidth < 900) {
+            elem.style.top = '100px';
+            elem.style.right = `calc(50% - ${window.innerWidth / 2}px)`;
+            elem.style.animationName = "mobileAnimation";
+        } else {
+            elem.style.top = `${Math.max(200, Math.random() * (window.innerHeight / 2)) + 20}px`;
+            elem.style.right = `${Math.random() * (window.innerWidth / 8) + 40}px`;
+            elem.style.animationName = "desktopAnimation";
+        }
 
         elem.getElementsByClassName("comment-name")[0].innerText = comment.authorName;
         elem.getElementsByClassName("comment-body")[0].innerText = comment.text;
@@ -75,27 +82,18 @@
         z-index: 150;
 
         background-color: #111;
-        border-radius: 10px;
-        padding: 10px;
+        box-shadow: 0 0 10px 0 rgba(0,0,0,0.5);
+        border-radius: 5px;
+        padding: 5px;
 
         animation: commentAnimation 5s cubic-bezier(.20,.6,.80,.9) infinite;
     }
-    @keyframes commentAnimation {
-        0% {
-            transform: translateX(-50px);
-            opacity: 0;
-        }
-        20% {
-            transform: translateX(-30px);
-            opacity: 1;
-        }
-        80% {
-            transform: translateX(30px);
-            opacity: 1;
-        }
-        100% {
-            transform: translateX(50px);
-            opacity: 0;
+    @media screen and (max-width: 900px) {
+        .comment {
+            width: calc(100% - 30px);
+            max-width: calc(100% - 30px);
+            left: 10px;
+
         }
     }
     .comment-header {
@@ -116,6 +114,8 @@
     }
     .comment-body {
         text-align: left;
+        max-height: 100px;
+        overflow-y: auto;
     }
     .comment-footer {
         display: flex;

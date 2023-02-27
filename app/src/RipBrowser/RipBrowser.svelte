@@ -3,6 +3,7 @@
     import PlaylistPlus from "svelte-material-icons/PlaylistPlus.svelte";
     import ContentCopy from "svelte-material-icons/ContentCopy.svelte";
     import OpenInNew from "svelte-material-icons/OpenInNew.svelte";
+    import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
     import VirtualList from "./VirtualList.svelte";
     import DateView from "../assets/DateView.svelte";
     import Joke from "../assets/Joke.svelte";
@@ -80,7 +81,10 @@
     {/if}
 </div>
 <div class="search" style={`display: ${window.location.search.includes("list=") ? "flex" : "none"}`}>
-    You're currently viewing a YouTube playlist with {results?.length || "[loading...]"} videos. <a href="/siivadb">Click here</a> to go back.
+    <a href="/siivadb" style="color: white">
+        <ArrowLeft height="24px" width="24px" />
+    </a>
+    YouTube playlist with {results?.length || "[loading...]"} videos.
 </div>
 <VirtualList items={results || browser.rips} height={"calc(100vh - 50px)"} let:item bind:start={start} bind:end={end}>
     {#key item.ytid}

@@ -48,6 +48,14 @@ export default class RipBrowser {
 
         let ytids = json.items.map((item: any) => item.snippet.resourceId.videoId);
 
+        while (json.nextPageToken) {
+            let resp = await fetch(`https://yt.lemnoslife.com/playlistItems?part=snippet&playlistId=${playlistId}&pageToken=${json.nextPageToken}`)
+
+            json = await resp.json();
+
+            ytids = ytids.concat(json.items.map((item: any) => item.snippet.resourceId.videoId));
+        }
+
         this.playlists[playlistId] = ytids;
 
         let ripMap = new Map<string, Rip>();

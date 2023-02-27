@@ -154,6 +154,7 @@
         margin: 0;
         padding: 10px;
         font-size: 1.2em;
+        line-height: 1.2;
         width: calc(100% - 20px);
         color: white;
         text-align: left;
