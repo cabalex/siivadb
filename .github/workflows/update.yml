@@ -1,0 +1,61 @@
+name: "Close stale issues"
+on:
+  schedule:
+  - cron: "0 0 * * *"
+
+jobs:
+  update:
+    name: Update
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.head_ref }}
+
+    - name: Install Node.js
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Run update script
+      run: python "update_db.py"
+      working-directory: ./parsing
+      env:
+        YT_API_KEY: ${{ secrets.YT_API_KEY }}
+
+    - name: Commit to base branch
+      uses: stefanzweifel/git-auto-commit-action@v4
+      file_pattern: '*.siivadb'
+      commit_message: Routine DB Update
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: database
+        path: ./app/public/db/db.siivadb
+  
+  deploy:
+    name: Deploy
+    needs: update
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout branch
+      uses: actions/checkout@v2
+      with:
+        ref: gh-pages
+
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: database
+        path: ./db
+    
+    - name: Commit to sub branch
+      uses: stefanzweifel/git-auto-commit-action@v4
+      file_pattern: '*.siivadb'
+      commit_message: Routine DB Update
+      branch: gh-pages
