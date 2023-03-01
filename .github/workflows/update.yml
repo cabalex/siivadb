@@ -30,8 +30,6 @@ jobs:
     
     - name: Install dependencies
       run: pip install requests
-      
-    - name: Install items
     
     - name: Run update script
       run: python "update_db.py"
