@@ -22,11 +22,13 @@ jobs:
       with:
         ref: ${{ github.head_ref }}
 
-    - name: Install Node.js
+    - name: Install Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
         cache: 'pip'
+    
+    - name: Install dependencies
       run: pip install requests
       
     - name: Install items
