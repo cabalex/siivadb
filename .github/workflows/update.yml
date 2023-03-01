@@ -26,6 +26,10 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+        cache: 'pip'
+      run: pip install requests
+      
+    - name: Install items
     
     - name: Run update script
       run: python "update_db.py"
