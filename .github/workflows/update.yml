@@ -41,6 +41,7 @@ jobs:
       with:
         file_pattern: '*.siivadb'
         commit_message: Routine DB Update
+        commit_author: GitHub Actions Bot <actions@github.com>
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
