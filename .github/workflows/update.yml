@@ -71,4 +71,5 @@ jobs:
       with:
         file_pattern: '*.siivadb'
         commit_message: Routine DB Update
+        commit_author: GitHub Actions Bot <actions@github.com>
         branch: gh-pages
