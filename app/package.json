@@ -19,9 +19,8 @@
     "vite": "^4.1.0"
   },
   "dependencies": {
-    "@sveltejs/svelte-virtual-list": "^3.0.1",
     "svelte-material-icons": "^3.0.4",
-    "svelte-virtual-list": "^3.0.1",
+    "svelte-tiny-virtual-list": "^2.1.2",
     "svelte-youtube": "^0.0.2",
     "zstddec": "^0.1.0"
   }

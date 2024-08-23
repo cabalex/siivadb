@@ -12,6 +12,26 @@
     let index = 0;
     let elem;
 
+    function prettyDate(time: Date) {
+        let diff = (((new Date()).getTime() - time.getTime()) / 1000);
+        let day_diff = Math.floor(diff / 86400);
+
+        if (isNaN(day_diff) || day_diff < 0) return;
+
+        return day_diff == 0 && (
+            diff < 60 && "just now" ||
+            diff < 120 && "1 minute ago" ||
+            diff < 3600 && Math.floor(diff / 60) + " minutes ago" ||
+            diff < 7200 && "1 hour ago" ||
+            diff < 86400 && Math.floor(diff / 3600) + " hours ago") ||
+            day_diff == 1 && "Yesterday" ||
+            day_diff < 7 && day_diff + " days ago" ||
+            day_diff < 31 && Math.ceil(day_diff / 7) + " weeks ago" ||
+            day_diff < 365 && Math.ceil(day_diff / 30) + " months ago" ||
+            Math.ceil(day_diff / 365) + " years ago";
+    }
+
+
     function setupComment() {
         if (index >= comments.length) {
             index = 0;
@@ -32,9 +52,10 @@
         elem.getElementsByClassName("comment-name")[0].innerText = comment.authorName;
         elem.getElementsByClassName("comment-body")[0].innerText = comment.text;
         elem.getElementsByTagName("img")[0].src = comment.authorPfp;
-        elem.getElementsByClassName("comment-time")[0].innerText = comment.publishedAt;
+        elem.getElementsByClassName("comment-time")[0].innerText = prettyDate(comment.publishedAt);
         elem.getElementsByClassName("likes")[0].innerText = comment.likes;
         elem.getElementsByClassName("replies")[0].innerText = comment.replies;
+        elem.getElementsByClassName("replies")[0].parentElement.style.display = comment.replies > 0 ? "inline" : "none";
 
         index++;
 

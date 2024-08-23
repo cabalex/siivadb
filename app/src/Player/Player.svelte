@@ -5,7 +5,7 @@
     import PlaylistAdd from "svelte-material-icons/PlaylistPlus.svelte";
     import OpenInNew from "svelte-material-icons/OpenInNew.svelte";
     import Close from "svelte-material-icons/Close.svelte";
-    import { currentRip, player, options } from "../stores";
+    import { currentRip, player, options, currentResults } from "../stores";
     import PlayerComments from "./PlayerComments.svelte";
 
     let error = false;
@@ -14,7 +14,7 @@
 
     async function fetchComments() {
         if ($currentRip && $currentRip.duration > 30) {
-            let resp = await fetch(`https://yt.lemnoslife.com/commentThreads?part=snippet,replies&videoId=${$currentRip.ytid}&order=relevance`)
+            let resp = await fetch(`https://yt.lemnoslife.com/noKey/commentThreads?part=snippet,replies&videoId=${$currentRip.ytid}&order=relevance`)
             let json = await resp.json();
 
             if (json.error) {
@@ -25,11 +25,11 @@
             comments = json.items.map((item) => {
                 return {
                     text: item.snippet.topLevelComment.snippet.textOriginal,
-                    authorName: item.snippet.topLevelComment.snippet.authorName || item.snippet.topLevelComment.snippet.authorHandle,
-                    authorPfp: item.snippet.topLevelComment.snippet.authorProfileImageUrls[0].url,
+                    authorName: item.snippet.topLevelComment.snippet.authorDisplayName,
+                    authorPfp: item.snippet.topLevelComment.snippet.authorProfileImageUrl,
                     likes: item.snippet.topLevelComment.snippet.likeCount,
-                    replies: item.snippet.topLevelComment.snippet.totalReplyCount,
-                    publishedAt: item.snippet.topLevelComment.snippet.publishedAt,
+                    replies: item.snippet.totalReplyCount,
+                    publishedAt: new Date(item.snippet.topLevelComment.snippet.publishedAt),
                 }
             })
 
@@ -41,6 +41,14 @@
         comments = null;
         if (commentsTimeout) clearTimeout(commentsTimeout);
         if ($options.showComments) commentsTimeout = setTimeout(fetchComments, 7500);
+    }
+
+    function nextRip() {
+        let index = $currentResults.findIndex(rip => rip.ytid === $currentRip.ytid);
+        if (index === -1) return;
+        if (index === $currentResults.length - 1) index = 0;
+        else index++;
+        currentRip.set($currentResults[index]);
     }
 
     export const skipToTime = (time: number) => { 
@@ -94,6 +102,7 @@
             videoId={$currentRip.ytid}
             on:error={e => error = true}
             on:ready={e => player.set(e.detail.target)}
+            on:end={e => nextRip()}
         />
         {:else}
         <div class="error">

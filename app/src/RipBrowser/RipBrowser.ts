@@ -173,7 +173,10 @@ export default class RipBrowser {
             let postTime = dateOffset(view.getUint32(uploadDateTableOffset + i * 4, true) * 1000);
             
             let name = rawname.split(" - ");
-            let series = name.pop();
+            let series = "";
+            if (name.length > 1) {
+                series = name.pop();
+            }
             
             this.rips.push({
                 rawname,
