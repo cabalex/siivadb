@@ -1,3 +1,5 @@
+import { ZSTDDecoder } from 'zstddec';
+
 interface Rip {
     name: string;
     series: string;
@@ -137,8 +139,13 @@ export default class RipBrowser {
     }
 
     async load() {
-        let response = await fetch('./db/db.siivadb', { method: 'GET' })
+        let response = await fetch('./db/db.siivadb.zst', { method: 'GET' })
         let arrayBuffer = await response.arrayBuffer();
+
+        let decoder = new ZSTDDecoder();
+        await decoder.init();
+        arrayBuffer = decoder.decode(new Uint8Array(arrayBuffer)).buffer;
+
         let view = new DataView(arrayBuffer);
 
         if (view.getUint32(0, true) !== 1447643475) {

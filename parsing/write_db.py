@@ -3,6 +3,7 @@ from struct import pack
 import re
 from urllib import parse
 import requests
+import zstd
 
 """ Convert datetime object to UTC 2016 timestamp """
 def toUTCTimestamp(stamp: datetime):
@@ -88,6 +89,11 @@ class SiivaDB:
         self.jokeTable = []
 
         f = open(filename, 'rb')
+        if filename.endswith('.zst'):
+            with open(filename[:-4], 'wb') as rawf:
+                rawf.write(zstd.decompress(f.read()))
+            f = open(filename[:-4], 'rb')
+
         if f.read(4) != b"SIIV":
             raise Exception("Invalid database file")
         
@@ -156,7 +162,7 @@ class SiivaDB:
             jokeTable += pack("<H", len(desc) - 1) + desc
 
 
-        f = open(filename, 'wb')
+        f = open(filename, 'wb+')
         f.write(b"SIIV")
         f.write(pack("<I", 1)) # Version
         f.write(pack("<I", len(self.nameTable))) # Rip count
@@ -188,6 +194,11 @@ class SiivaDB:
 
         f.seek(16)
         f.write(pack("<IIII", uploadDateTableOffset, durationTableOffset, nameTableOffset, descriptionTableOffset))
+        
+        f.seek(0)
+
+        with open(filename + ".zst", "wb") as zstdfile:
+            zstdfile.write(zstd.compress(f.read()))
         
         f.close()
 

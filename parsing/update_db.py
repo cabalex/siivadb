@@ -6,9 +6,9 @@ import os
 
 print("Updating database...")
 
-db = SiivaDB("../app/public/db/db.siivadb")
+db = SiivaDB("../app/public/db/db.siivadb.zst")
 
-key = "AIzaSyBB8fzumg2e6B3aKtSF2vjO0SmK4YhF9iY"#os.environ["YT_API_KEY"]
+key = os.environ["YT_API_KEY"]
 
 request = requests.get("https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=UU9ecwl3FTG66jIKA9JRDtmg&key=" + key)
 
