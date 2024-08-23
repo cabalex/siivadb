@@ -58,7 +58,7 @@
 {#if $currentResults.length > 0}
 <VirtualList
     itemCount={$currentResults.length}
-    itemSize={120}
+    itemSize={window.innerWidth < 900 ? 220 : 120}
     width="100%"
     height={window.innerHeight - 50}
     scrollToIndex={0}

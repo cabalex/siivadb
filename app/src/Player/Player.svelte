@@ -108,7 +108,7 @@
         <div class="error">
             ⚠ Couldn't load that video. Visiting youtube.com.
         </div>
-        <div style="height: 280px; overflow: hidden">
+        <div style="height: 280px; overflow: hidden; background-color: black">
             <iframe
                 width={window.innerWidth < 900 ? "150" : "500"}
                 height={window.innerWidth < 900 ? "150" : "340"}

@@ -74,7 +74,7 @@
 
 <div class="comment" bind:this={elem} style={`display: ${$options.showComments ? "block" : "none"}`}>
     <div class="comment-header">
-        <img src="" alt="Profile" width="24" height="24">
+        <img src="" alt="" width="24" height="24">
         <b class="comment-name">Name</b>
         <span class="comment-time">2 days ago</span>
     </div>
