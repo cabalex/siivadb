@@ -44,30 +44,28 @@ export default class RipBrowser {
             return this.playlists[playlistId].map((ytid: string) => ripMap.get(ytid)).filter((rip: Rip) => rip !== undefined);
         }
 
-        let resp = await fetch(`https://yt.lemnoslife.com/playlistItems?part=snippet&playlistId=${playlistId}`)
+        let resp = await fetch(`https://yt.lemnoslife.com/noKey/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}`)
 
         let json = await resp.json();
 
-        let ytids = json.items.map((item: any) => item.snippet.resourceId.videoId);
+        this.playlists[playlistId] = json.items.map((item: any) => item.snippet.resourceId.videoId);
 
         while (json.nextPageToken) {
-            let resp = await fetch(`https://yt.lemnoslife.com/playlistItems?part=snippet&playlistId=${playlistId}&pageToken=${json.nextPageToken}`)
+            let resp = await fetch(`https://yt.lemnoslife.com/noKey/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&pageToken=${json.nextPageToken}`)
 
             json = await resp.json();
 
-            ytids = ytids.concat(json.items.map((item: any) => item.snippet.resourceId.videoId));
+            this.playlists[playlistId] = this.playlists[playlistId].concat(json.items.map((item: any) => item.snippet.resourceId.videoId));
         }
-
-        this.playlists[playlistId] = ytids;
 
         let ripMap = new Map<string, Rip>();
         for (let i = 0; i < this.rips.length; i++) {
-            if (ytids.includes(this.rips[i].ytid)) {
+            if (this.playlists[playlistId].includes(this.rips[i].ytid)) {
                 ripMap.set(this.rips[i].ytid, this.rips[i]);
             }
         }
 
-        return ytids.map((ytid: string) => ripMap.get(ytid)).filter((rip: Rip) => rip !== undefined);
+        return this.playlists[playlistId].map((ytid: string) => ripMap.get(ytid)).filter((rip: Rip) => rip !== undefined);
     }
 
     search(query: string, searchType: "all"|"jokes"|"titles", sort:"newest"|"oldest"|"alphabetical" = "newest") {
