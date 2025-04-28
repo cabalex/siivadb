@@ -56,7 +56,8 @@
       {#each $playlists as playlist}
         <button
           class="tab"
-          class:active={selectedPlaylist === playlist}
+          class:active={selectedPlaylist?.name === playlist.name &&
+            selectedPlaylist?.createdAt === playlist.createdAt}
           on:click={() => (selectedPlaylist = playlist)}
         >
           {playlist.name}

@@ -41,7 +41,11 @@
         >
           <MusicNote />
           <h3>{playlist.name}</h3>
-          <span>{playlist.videos.length} rips</span>
+          <span>
+            {playlist.videos.length} rip{playlist.videos.length === 1
+              ? ""
+              : "s"}
+          </span>
         </button>
       {/each}
     </div>

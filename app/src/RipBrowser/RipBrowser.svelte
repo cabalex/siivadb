@@ -152,7 +152,11 @@
           <MusicNote />
           <div class="text">
             <h2>{playlist.name}</h2>
-            <span style="color: #aaa">{playlist.videos.length} videos</span>
+            <span style="color: #aaa">
+              {playlist.videos.length} rip{playlist.videos.length === 1
+                ? ""
+                : "s"}
+            </span>
           </div>
           <button class:copied={playlistCopied} on:click={copyPlaylistLink}>
             <Share />
@@ -174,7 +178,7 @@
       </div>
       <div slot="footer" class="last">
         {#if playlist !== null && searchValue && searchValue.length >= 3}
-          You're searching a playlist. <button
+          You're searching a playlist, and this is the end. <button
             class="link"
             on:click={() => (playlist = null)}>Search all rips</button
           >
@@ -195,14 +199,14 @@
       </div>
     </VirtualList>
   {:else}
-    <div class="last" style="height: calc(100vh - 50px); width: 100%">
+    <div class="last" style="width: 100%">
       {#if playlist !== null && searchValue && searchValue.length >= 3}
-        You're searching a playlist. <button
+        You're searching a playlist, and there's no results. <button
           class="link"
           on:click={() => (playlist = null)}>Search all rips</button
         >
       {:else if playlist !== null}
-        You've reached the end of the playlist. <button
+        There's nothing in this playlist. <button
           class="link"
           on:click={() => (playlist = null)}>Explore all rips</button
         >
@@ -297,7 +301,7 @@
     margin: 0 auto;
     position: relative;
     padding-top: 10px;
-    padding-bottom: 50vh;
+    padding-bottom: calc(100vh - 225px);
   }
   .copied {
     background-color: #47bd6c;
