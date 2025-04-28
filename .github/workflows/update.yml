@@ -39,7 +39,7 @@ jobs:
     - name: Commit to base branch
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        file_pattern: '*.siivadb'
+        file_pattern: '*.{siivadb,zst}'
         commit_message: Routine DB Update
         commit_author: GitHub Actions Bot <actions@github.com>
 
@@ -47,7 +47,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: database
-        path: ./app/public/db/db.siivadb
+        path: ./app/public/db/db.*
   
   deploy:
     name: Deploy
@@ -70,7 +70,7 @@ jobs:
     - name: Commit to sub branch
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        file_pattern: '*.siivadb'
+        file_pattern: '*.{siivadb,zst}'
         commit_message: Routine DB Update
         commit_author: GitHub Actions Bot <actions@github.com>
         branch: gh-pages
