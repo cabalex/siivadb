@@ -1,15 +1,14 @@
 name: "Update DB"
 on:
   schedule:
-  - cron: "0 0 * * *"
+    - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
       tags:
-        description: 'this checkbox does nothing'
+        description: "this checkbox does nothing"
         required: false
         type: boolean
-
 
 jobs:
   update:
@@ -17,60 +16,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-      with:
-        ref: ${{ github.head_ref }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
 
-    - name: Install Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    
-    - name: Install dependencies
-      run: pip install requests zstd
-    
-    - name: Run update script
-      run: python "update_db.py"
-      working-directory: ./parsing
-      env:
-        YT_API_KEY: ${{ secrets.YT_API_KEY }}
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
 
-    - name: Commit to base branch
-      uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        file_pattern: '*.{siivadb,zst}'
-        commit_message: Routine DB Update
-        commit_author: GitHub Actions Bot <actions@github.com>
+      - name: Install dependencies
+        run: pip install requests zstd
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: database
-        path: ./app/public/db/db.*
-  
+      - name: Run update script
+        run: python "update_db.py"
+        working-directory: ./parsing
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+
+      - name: Commit to base branch
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          file_pattern: "*.siivadb.zst"
+          commit_message: Routine DB Update
+          commit_author: GitHub Actions Bot <actions@github.com>
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: database
+          path: ./app/public/db/db.siivadb.zst
+
   deploy:
     name: Deploy
     needs: update
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout branch
-      uses: actions/checkout@v2
-      with:
-        ref: gh-pages
 
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: database
-        path: ./db
-    
-    - name: Commit to sub branch
-      uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        file_pattern: '*.{siivadb,zst}'
-        commit_message: Routine DB Update
-        commit_author: GitHub Actions Bot <actions@github.com>
-        branch: gh-pages
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: database
+          path: ./db
+
+      - name: Commit to sub branch
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          file_pattern: "*.siivadb.zst"
+          commit_message: Routine DB Update
+          commit_author: GitHub Actions Bot <actions@github.com>
+          branch: gh-pages
