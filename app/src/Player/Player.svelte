@@ -2,17 +2,19 @@
   import { slide } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import YouTube from "svelte-youtube";
-  import Text from "svelte-material-icons/Text.svelte";
   import PlaylistAdd from "svelte-material-icons/PlaylistPlus.svelte";
   import OpenInNew from "svelte-material-icons/OpenInNew.svelte";
   import Close from "svelte-material-icons/Close.svelte";
   import { currentRip, player, options, currentResults } from "../stores";
   import PlayerComments from "./PlayerComments.svelte";
   import PlaylistAddModal from "../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
+  import { createEventDispatcher } from "svelte";
 
   let error = false;
   let commentsTimeout = null;
   let comments = null;
+
+  const dispatch = createEventDispatcher();
 
   async function fetchComments() {
     if ($currentRip && $currentRip.duration > 30) {
@@ -86,6 +88,10 @@
       <Close />
     </button>
     <a
+      on:click={(e) => {
+        e.preventDefault();
+        dispatch("scroll", $currentRip);
+      }}
       href={`https://www.youtube.com/watch?v=${$currentRip.ytid}`}
       rel="noopener noreferrer"
       target="_blank"
@@ -95,7 +101,7 @@
       </h2>
     </a>
     <div class="player-actions">
-      <button on:click={() => (playlistAddModalVisible = true)}>
+      <button class="btn" on:click={() => (playlistAddModalVisible = true)}>
         <PlaylistAdd />
       </button>
       <a
@@ -104,7 +110,6 @@
         target="_blank"
         href={`https://siivagunner.fandom.com/wiki/${encodeURIComponent($currentRip.rawname.replace("#", ""))}`}
       >
-        <Text />
         <OpenInNew />
       </a>
     </div>
@@ -113,8 +118,6 @@
       {#if !error}
         <YouTube
           options={{
-            width: window.innerWidth < 900 ? "150" : "500",
-            height: window.innerWidth < 900 ? "90" : "280",
             playerVars: {
               autoplay: 1,
               modestbranding: 1,
@@ -171,23 +174,41 @@
     flex-direction: row;
     align-items: center;
   }
+  .player .video,
+  .filler-video {
+    width: 40vw;
+    max-width: 500px;
+  }
   .player .video {
     position: absolute;
     box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
     right: 20px;
     bottom: 0;
-    width: 500px;
-    height: 280px;
+    height: calc(40vw * (9 / 16));
+    max-height: calc(500px * (9 / 16));
 
     border-radius: 10px 10px 0 0;
     overflow: hidden;
   }
+  :global(iframe, .video > *) {
+    width: 100%;
+    height: 100%;
+  }
   .player-actions {
     padding: 10px;
     display: flex;
+    height: 100%;
+    gap: 1px;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+  }
+  .player-actions .btn {
+    border-radius: 0px;
+    padding: 0 10px;
+    height: 100%;
+  }
+  .player > a {
+    flex-grow: 1;
   }
   .player h2 {
     margin: 0;
@@ -217,7 +238,7 @@
     color: white;
   }
   .filler-video {
-    width: 500px;
+    padding: 0 5px;
     flex-shrink: 0;
   }
 
@@ -225,11 +246,23 @@
     .player {
       left: 20px;
     }
+    .player > a {
+      font-size: 0.8em;
+    }
     .player-actions {
-      display: none;
+      padding: 0;
+      border-radius: 0 10px 0 0;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .player-actions .btn:hover {
+      background-color: #42485b;
     }
     .filler-video {
       display: none;
+    }
+    .close {
+      padding: 5px;
     }
     .video {
       width: 150px !important;

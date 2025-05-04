@@ -6,6 +6,7 @@
 
   let loaded = false;
   let selectedPlaylist = null;
+  let updateScroll;
 
   $browser.load().then(() => {
     loaded = true;
@@ -64,12 +65,16 @@
         </button>
       {/each}
     </div>
-    <RipBrowser browser={$browser} bind:playlist={selectedPlaylist} />
+    <RipBrowser
+      bind:updateScroll
+      browser={$browser}
+      bind:playlist={selectedPlaylist}
+    />
   {:else}
     <h2>Loading...</h2>
   {/if}
 </main>
-<Player />
+<Player on:scroll={(e) => updateScroll(e.detail)} />
 
 <style>
   header {

@@ -15,6 +15,14 @@
 
   export let browser: RipBrowser;
   export let playlist = null;
+  export const updateScroll = (rip: Rip) => {
+    let index = $currentResults.findIndex((r) => r.ytid === rip.ytid);
+    if (index === -1) return;
+    scrollToIndex = null;
+    setTimeout(() => {
+      scrollToIndex = index;
+    }, 0);
+  };
 
   let searchValue = "";
   let searchType: "all" | "jokes" | "titles" = "all";
@@ -24,6 +32,7 @@
   let addModalVideo = null;
 
   let playlistCopied = false;
+  let scrollToIndex = 0;
 
   onMount(() => {
     if (window.location.search.includes("pl=")) {
@@ -51,6 +60,12 @@
     if (window.location.search.includes("v=")) {
       let list = window.location.search.split("v=")[1].split("&")[0];
       $currentRip = browser.rips.find((r) => r.ytid === list) || null;
+      let ripIndex = $currentResults.findIndex(
+        (r) => r.ytid === $currentRip.ytid
+      );
+      if (ripIndex !== -1) {
+        scrollToIndex = ripIndex;
+      }
     }
   });
 
@@ -141,7 +156,8 @@
       itemSize={window.innerWidth < 900 ? 220 : 120}
       width="100%"
       height={window.innerHeight - 146}
-      scrollToIndex={0}
+      scrollToAlignment="start"
+      {scrollToIndex}
       on:itemsUpdated={(e) => {
         start = e.detail.start;
         end = e.detail.end;
