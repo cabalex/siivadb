@@ -29,14 +29,14 @@ export default class RipBrowser {
   private readStringUint8(view: DataView, offset: number) {
     let length = view.getUint8(offset);
     return this.textDecoder.decode(
-      view.buffer.slice(offset + 1, offset + 1 + length)
+      view.buffer.slice(offset + 1, offset + 1 + length),
     );
   }
 
   private readStringUint16(view: DataView, offset: number) {
     let length = view.getUint16(offset, true);
     return this.textDecoder.decode(
-      view.buffer.slice(offset + 2, offset + 2 + length)
+      view.buffer.slice(offset + 2, offset + 2 + length),
     );
   }
 
@@ -52,24 +52,24 @@ export default class RipBrowser {
     }
 
     let resp = await fetch(
-      `https://yt.lemnoslife.com/noKey/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}`
+      `https://yt.lemnoslife.com/noKey/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}`,
     );
 
     let json = await resp.json();
 
     this.playlists[playlistId] = json.items.map(
-      (item: any) => item.snippet.resourceId.videoId
+      (item: any) => item.snippet.resourceId.videoId,
     );
 
     while (json.nextPageToken) {
       let resp = await fetch(
-        `https://yt.lemnoslife.com/noKey/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&pageToken=${json.nextPageToken}`
+        `https://yt.lemnoslife.com/noKey/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&pageToken=${json.nextPageToken}`,
       );
 
       json = await resp.json();
 
       this.playlists[playlistId] = this.playlists[playlistId].concat(
-        json.items.map((item: any) => item.snippet.resourceId.videoId)
+        json.items.map((item: any) => item.snippet.resourceId.videoId),
       );
     }
 
@@ -100,7 +100,7 @@ export default class RipBrowser {
     query: string,
     searchType: "all" | "jokes" | "titles",
     sort: "newest" | "oldest" | "alphabetical" = "newest",
-    playlist: Playlist | null = null
+    playlist: Playlist | null = null,
   ) {
     let results: Rip[] = [];
     let ctx = this.rips;
@@ -213,14 +213,16 @@ export default class RipBrowser {
       let rawname = this.readStringUint8(view, nameTableOffset + nameOffset);
 
       let descriptionOffset = view.getUint32(pos + 15, true);
-      let description = this.readStringUint16(
-        view,
-        descriptionTableOffset + descriptionOffset
-      );
+      let description =
+        this.readStringUint16(
+          view,
+          descriptionTableOffset + descriptionOffset,
+        ) ||
+        "We don't have this rip in our database... yet. Contribute to the Wiki to add it!";
 
       let duration = view.getUint16(durationTableOffset + i * 2, true);
       let postTime = dateOffset(
-        view.getUint32(uploadDateTableOffset + i * 4, true) * 1000
+        view.getUint32(uploadDateTableOffset + i * 4, true) * 1000,
       );
 
       let name = rawname.split(" - ");

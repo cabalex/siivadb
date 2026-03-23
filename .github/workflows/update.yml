@@ -27,7 +27,7 @@ jobs:
           python-version: "3.9"
 
       - name: Install dependencies
-        run: pip install requests zstd
+        run: pip install requests zstd nodriver
 
       - name: Run update script
         run: python "update_db.py"

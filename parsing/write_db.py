@@ -2,8 +2,9 @@ from datetime import datetime, timezone, timedelta
 from struct import pack
 import re
 from urllib import parse
-import requests
 import zstd
+import json
+import nodriver as uc # New SiivaGunner Wiki uses Cloudflare protection
 
 """ Convert datetime object to UTC 2016 timestamp """
 def toUTCTimestamp(stamp: datetime):
@@ -24,15 +25,48 @@ class SiivaDB:
     durationTable = []
     jokeTable = []
 
-    def __init__(self, filename: str = None):
+    browser = None
+
+    def __init__(self, filename: str|None = None):
         if filename is not None:
             self.read(filename)
 
-    def fetchJoke(self, name: str):
+
+    async def _fetchPageData(self, browser: uc.Browser, name: str) -> dict:
+        print(f"Fetching page data for {name}...")
         try:
-            request = requests.get("https://siivagunner.fandom.com/api.php?action=parse&format=json&prop=wikitext&page=" + parse.quote_plus(name.replace("#", "")))
-            js = request.json()
-            nojoke = "We don't have this rip in our database... yet. Contribute to the Wiki to add it!"
+            page = await browser.get(
+                "https://www.siivagunner.wiki/w/api.php?action=parse&format=json&prop=wikitext&page=" + parse.quote_plus(name.replace("#", ""))
+            )
+        except Exception as e:
+            print(f"Failed to fetch page for {name}: {e}")
+            raise e
+
+        tries = 10
+        element = None
+        while tries > 0:
+            try:
+                print("Waiting for page data...")
+                await page
+                print("Page loaded, waiting for element...")
+                element = await page.wait_for(selector="pre", timeout=15)
+                break
+            except TimeoutError as e:
+                tries -= 1
+                print(f"[!] Couldn't find element in {name}, retrying... ({10 - tries}/10)", e)
+                await page.reload()
+        
+        if element is None:
+            raise Exception(f"Failed to fetch page data for {name}.")
+        js = json.loads(element.text)
+
+        return js
+
+    async def fetchJoke(self, browser: uc.Browser, name: str):
+        try:
+            js = await self._fetchPageData(browser, name)
+            print(js)
+            nojoke = ""
 
             if "error" in js:
                 return nojoke
@@ -55,13 +89,24 @@ class SiivaDB:
                     joke = joke.split("<gallery")[0].strip()
 
                 if 'article-table' in joke:
-                    joke = joke.split("{|")[0].strip() + "[Please see the Wiki for the full list of jokes.]"
+                    joke = joke.split("{|")[0].strip() + " [Please see the Wiki for the full list of jokes.]"
                 return joke
 
             return "This rip doesn't appear to have traditional \"jokes\". It must be VERY high quality..."
-        except:
+        except Exception as e:
+            print(f"Failed to fetch joke for {name}: {e}")
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
+    async def fetchJokes(self, names: list[str]) -> list[str]:
+        browser = await uc.start()
+        jokes = []
+        for name in names:
+            jokes.append(await self.fetchJoke(browser, name))
+        browser.stop()
+        return jokes
+    
+    def fetchJokesSync(self, names: list[str]) -> list[str]:
+        return uc.loop().run_until_complete(self.fetchJokes(names))
 
     def addRip(self, name: str, ytid: str, uploadDate: datetime, duration: int, joke: str = None):
         self.nameTable.append(name)
@@ -70,7 +115,7 @@ class SiivaDB:
         self.durationTable.append(duration)
 
         if joke is None:
-            joke = self.fetchJoke(name)
+            joke = "MUST_FETCH"
         self.jokeTable.append(joke)
     
     def removeRip(self, ytid: str):
@@ -145,6 +190,18 @@ class SiivaDB:
         uploadDateTable = b""
         durationTable = b""
         jokeTable = b""
+
+        # Before writing, fetch any MUST_FETCH jokes
+        needToFetchIndexes = []
+        for i in range(len(self.jokeTable)):
+            if self.jokeTable[i] == "MUST_FETCH":
+                needToFetchIndexes.append(i)
+        if len(needToFetchIndexes) > 0:
+            print(f"Fetching {len(needToFetchIndexes)} jokes before writing...")
+            namesToFetch = [self.nameTable[i] for i in needToFetchIndexes]
+            fetchedJokes = self.fetchJokesSync(namesToFetch)
+            for i in range(len(needToFetchIndexes)):
+                self.jokeTable[needToFetchIndexes[i]] = fetchedJokes[i]
 
         # sort database by time
         self.nameTable, self.ytidTable, self.uploadDateTable, self.durationTable, self.jokeTable = zip(*sorted(zip(self.nameTable, self.ytidTable, self.uploadDateTable, self.durationTable, self.jokeTable), key=lambda x: -x[2]))
