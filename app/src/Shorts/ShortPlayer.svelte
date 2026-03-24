@@ -6,7 +6,7 @@
   import { likes, options } from "../stores";
   import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
   import ThumbUpOutline from "svelte-material-icons/ThumbUpOutline.svelte";
-  import YouTubeIcon from "svelte-material-icons/YouTube.svelte";
+  import YouTubeIcon from "./lib/YouTubeIcon.svelte";
   import Share from "svelte-material-icons/Share.svelte";
   import Notebook from "svelte-material-icons/Notebook.svelte";
 
