@@ -57,7 +57,11 @@ playlists.subscribe((playlists) => {
   localStorage.setItem("siivadb-playlists", JSON.stringify(playlists));
 });
 
-export const likes = writable<string[]>([]);
+export const likes = writable<string[]>(
+  localStorage.getItem("siivadb-likes")
+    ? JSON.parse(localStorage.getItem("siivadb-likes"))
+    : [],
+);
 likes.subscribe((likes) => {
   localStorage.setItem("siivadb-likes", JSON.stringify(likes));
 });

@@ -48,7 +48,7 @@
       };
       playlists.update((playlists) => {
         let found = playlists.find(
-          (p) => p.name === name && p.createdAt === createdAt
+          (p) => p.name === name && p.createdAt === createdAt,
         );
         if (found) {
           return playlists;
@@ -61,7 +61,7 @@
       let list = window.location.search.split("v=")[1].split("&")[0];
       $currentRip = browser.rips.find((r) => r.ytid === list) || null;
       let ripIndex = $currentResults.findIndex(
-        (r) => r.ytid === $currentRip.ytid
+        (r) => r.ytid === $currentRip.ytid,
       );
       if (ripIndex !== -1) {
         scrollToIndex = ripIndex;
@@ -73,7 +73,11 @@
     const ripComma = playlist.videos.join(",");
     const name = playlist.name.replace(/,/g, "%2C");
     const b64 = btoa(
-      name + "," + playlist.createdAt.toString() + "," + ripComma
+      name +
+        "," +
+        (playlist.createdAt || Date.now()).toString() +
+        "," +
+        ripComma,
     );
     const link = location.origin + location.pathname + "?pl=" + b64;
     navigator.clipboard.writeText(link);
@@ -85,7 +89,7 @@
     if (confirm("Are you sure you want to delete this playlist?")) {
       playlists.update((playlists) => {
         return playlists.filter(
-          (p) => p.name !== playlist.name && p.createdAt !== playlist.createdAt
+          (p) => p.name !== playlist.name && p.createdAt !== playlist.createdAt,
         );
       });
       playlist = null;
@@ -98,7 +102,7 @@
         searchValue,
         searchType,
         "newest",
-        playlist
+        playlist,
       );
       //} else if (window.location.search.includes("list=")) {
       //  let list = window.location.search.split("list=")[1].split("&")[0];
@@ -130,7 +134,7 @@
     />
     <span
       >Showing {start + 1} to {end} of {$currentResults.length} rips {window.location.search.includes(
-        "list="
+        "list=",
       )
         ? "(from YouTube playlist)"
         : ""}</span
@@ -155,7 +159,7 @@
       itemCount={$currentResults.length}
       itemSize={window.innerWidth < 900 ? 220 : 120}
       width="100%"
-      height={window.innerHeight - 146}
+      height={window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0)}
       scrollToAlignment="start"
       {scrollToIndex}
       on:itemsUpdated={(e) => {
@@ -177,9 +181,11 @@
           <button class:copied={playlistCopied} on:click={copyPlaylistLink}>
             <Share />
           </button>
-          <button class="danger" on:click={deletePlaylist}>
-            <Delete />
-          </button>
+          {#if !playlist?.default}
+            <button class="danger" on:click={deletePlaylist}>
+              <Delete />
+            </button>
+          {/if}
         {/if}
       </div>
       <div slot="item" let:index let:style {style}>

@@ -9,6 +9,7 @@
   import YouTubeIcon from "./lib/YouTubeIcon.svelte";
   import Share from "svelte-material-icons/Share.svelte";
   import Notebook from "svelte-material-icons/Notebook.svelte";
+  import DateView from "../assets/DateView.svelte";
 
   export let rip: RipBrowser["rips"][0];
   export let position = 0;
@@ -211,7 +212,11 @@
           src="https://i.ytimg.com/vi/{rip.ytid}/default.jpg"
           alt="{rip.series} thumbnail"
         />
-        {rip.series}
+        <div class="text">
+          {rip.series}
+          <span>•</span>
+          <DateView date={rip.postTime} />
+        </div>
       </h3>
     {/if}
     <h2>{rip.name}</h2>
@@ -275,7 +280,7 @@
     height: fit-content;
     bottom: 0;
     padding-right: 4rem;
-    padding-bottom: 10px;
+    padding-bottom: 1rem;
     width: calc(100% - 4rem);
     background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
     color: white;
@@ -290,10 +295,13 @@
     padding: 0 10px;
     line-height: 1.25;
   }
+  :global(.shorts-video-container header h3 .text span) {
+    color: #aaa;
+  }
   header h3 img {
-    width: 1.8rem;
-    border-radius: 100px;
-    height: 1.8rem;
+    width: 3rem;
+    border-radius: 0.4rem;
+    height: 1.5rem;
     object-fit: cover;
   }
   header h2 {

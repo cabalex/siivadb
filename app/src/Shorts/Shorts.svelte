@@ -107,7 +107,7 @@
   main {
     width: 100%;
     max-width: 800px;
-    height: calc(100% - 52px);
+    height: 100%;
     margin: 0 auto;
     position: relative;
     overflow: hidden;
@@ -135,6 +135,11 @@
   @media screen and (max-width: 700px) {
     .desktop-actions {
       display: none;
+    }
+  }
+  @media screen and (max-width: 1100px) {
+    main {
+      height: calc(100% - 60px);
     }
   }
 </style>

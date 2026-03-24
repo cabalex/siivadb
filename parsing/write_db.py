@@ -71,8 +71,8 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
                 break
             except TimeoutError as e:
                 tries -= 1
-                print(f"[!] Couldn't find element in {name}, retrying... ({10 - tries}/10)", e)
-                await page.verify_cf()
+                print(f"[!] Couldn't find element in {name}, retrying... ({5 - tries}/10)", e)
+                await page.reload()
         
         if element is None:
             raise Exception(f"Failed to fetch page data for {name}.")
@@ -116,7 +116,7 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
     async def fetchJokes(self, names: list[str]) -> list[str]:
-        browser = await zd.start(browser_executable_path=BROWSER_PATH, sandbox=False, browser_connection_timeout=3, browser_connection_max_tries=15)
+        browser = await zd.start(browser_executable_path=BROWSER_PATH, headless=True, sandbox=False, browser_connection_timeout=3, browser_connection_max_tries=15)
         jokes = []
         for name in names:
             jokes.append(await self.fetchJoke(browser, name))

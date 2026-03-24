@@ -131,7 +131,6 @@
         videoId={$currentRip.ytid}
         on:error={(e) => (error = true)}
         on:ready={(e) => player.set(e.detail.target)}
-        on:play={(e) => console.log(e.detail.target)}
         on:end={(e) => nextRip()}
       />
     </div>
@@ -252,11 +251,16 @@
       padding: 5px;
     }
     .video {
-      width: 150px !important;
-      height: 90px !important;
+      width: 32vw !important;
+      height: 18vw !important;
       bottom: 100px !important;
       right: 5px !important;
       border-radius: 5px !important;
+    }
+  }
+  @media screen and (max-width: 1100px) {
+    .player {
+      bottom: 60px;
     }
   }
 </style>

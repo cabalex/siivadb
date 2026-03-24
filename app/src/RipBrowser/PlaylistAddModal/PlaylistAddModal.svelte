@@ -3,7 +3,8 @@
   import Rip from "../Rip.svelte";
   import Plus from "svelte-material-icons/Plus.svelte";
   import MusicNote from "svelte-material-icons/MusicNote.svelte";
-  import { type Playlist, playlists } from "../../stores";
+  import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
+  import { type Playlist, playlists, likes } from "../../stores";
 
   export let video: Rip;
 
@@ -16,6 +17,15 @@
     } else {
       playlist.videos.push(video.ytid);
       $playlists = $playlists;
+      dispatch("close");
+    }
+  }
+
+  function addLike(video: Rip) {
+    if ($likes.find((v) => v === video.ytid)) {
+      $likes = $likes.filter((v) => v !== video.ytid);
+    } else {
+      $likes = [...$likes, video.ytid];
       dispatch("close");
     }
   }
@@ -33,6 +43,17 @@
   <div class="modal-inner" on:click={(e) => e.stopPropagation()}>
     <h2>Add video to playlist</h2>
     <div class="playlists">
+      <button
+        class="playlist"
+        on:click={() => addLike(video)}
+        class:active={$likes.includes(video.ytid)}
+      >
+        <ThumbUp />
+        <h3>Liked Rips</h3>
+        <span>
+          {$likes.length} rip{$likes.length === 1 ? "" : "s"}
+        </span>
+      </button>
       {#each $playlists as playlist}
         <button
           class="playlist"

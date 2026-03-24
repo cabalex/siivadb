@@ -13,5 +13,5 @@ A database for browsing [SiIvaGunner's](https://www.youtube.com/@SiIvaGunner) th
 
 ## Credits
 
-- The fantastic [SiIvaGunner wiki](https://siivagunner.fandom.com/)
+- The fantastic [SiIvaGunner wiki](https://siivagunner.wiki/)
 - Chaze and everyone else who has contributed to the channel over the years
