@@ -7,7 +7,7 @@ import json
 import zendriver as zd # New SiivaGunner Wiki uses Cloudflare protection
 
 # Set to None to autodetect
-BROWSER_PATH = "/usr/bin/google-chrome"
+BROWSER_PATH = None#"/usr/bin/google-chrome"
 
 """ Convert datetime object to UTC 2016 timestamp """
 def toUTCTimestamp(stamp: datetime):
@@ -49,13 +49,29 @@ class SiivaDB:
             try:
                 print("Waiting for page data...")
                 await page
+                body = await page.find("body")
+                await body.apply("""(elem) => {
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// old method wouldn't work on 4k screens
+
+let screenX = getRandomInt(800, 1200);
+let screenY = getRandomInt(400, 600);
+
+Object.defineProperty(MouseEvent.prototype, 'screenX', { value: screenX });
+
+Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
+}
+""")
                 print("Page loaded, waiting for element...")
                 element = await page.wait_for(selector="pre", timeout=15)
                 break
             except TimeoutError as e:
                 tries -= 1
                 print(f"[!] Couldn't find element in {name}, retrying... ({10 - tries}/10)", e)
-                await page.reload()
+                await page.verify_cf()
         
         if element is None:
             raise Exception(f"Failed to fetch page data for {name}.")
@@ -99,7 +115,7 @@ class SiivaDB:
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
     async def fetchJokes(self, names: list[str]) -> list[str]:
-        browser = await zd.start(browser_executable_path=BROWSER_PATH, headless=True, sandbox=False, browser_connection_timeout=3, browser_connection_max_tries=15)
+        browser = await zd.start(browser_executable_path=BROWSER_PATH, sandbox=False, browser_connection_timeout=3, browser_connection_max_tries=15)
         jokes = []
         for name in names:
             jokes.append(await self.fetchJoke(browser, name))
