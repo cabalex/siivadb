@@ -6,6 +6,9 @@ import zstd
 import json
 import zendriver as zd # New SiivaGunner Wiki uses Cloudflare protection
 
+# Set to None to autodetect
+BROWSER_PATH = "/usr/bin/google-chrome"
+
 """ Convert datetime object to UTC 2016 timestamp """
 def toUTCTimestamp(stamp: datetime):
     return int((stamp - datetime(2016, 1, 1, tzinfo=timezone.utc)).total_seconds())
@@ -96,7 +99,7 @@ class SiivaDB:
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
     async def fetchJokes(self, names: list[str]) -> list[str]:
-        browser = await zd.start(headless=True, sandbox=False)
+        browser = await zd.start(browser_executable_path=BROWSER_PATH, headless=True, sandbox=False)
         jokes = []
         for name in names:
             jokes.append(await self.fetchJoke(browser, name))
