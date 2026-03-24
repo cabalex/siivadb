@@ -43,12 +43,22 @@
   }
 
   let progress = 0;
+  let adPlaying = false;
   function updateProgress() {
     requestAnimationFrame(updateProgress);
     if (!player || offset !== 0) return;
+
     const currentTime = player.getCurrentTime();
     const duration = player.getDuration();
-    progress = duration > 0 ? currentTime / duration : 0;
+    // When an ad is playing, the progressState properties will differ from
+    // the actual video duration
+    const progressDuration = player.playerInfo.progressState.duration;
+    adPlaying = progressDuration !== duration;
+    if (adPlaying) {
+      progress = progressDuration > 0 ? currentTime / progressDuration : 0;
+    } else {
+      progress = duration > 0 ? currentTime / duration : 0;
+    }
   }
 
   onMount(() => {
@@ -103,6 +113,7 @@
 <div
   class="shorts-video-container"
   class:swiping
+  class:adPlaying
   class:hidden={scrollDirection === "down" ? offset >= 1 : offset <= -1}
   style="z-index: {Math.abs(offset) < 1 ? 1 : -1}; top: {offset *
     100}%; background-image: url(https://i.ytimg.com/vi/{rip.ytid}/hqdefault.jpg)"
@@ -156,6 +167,15 @@
   />
   {#if error}
     <div class="error">⚠ Couldn't load that video (error {error}). Sorry!</div>
+  {/if}
+  {#if adPlaying}
+    <div class="error" style="text-align: left;">
+      This ad is placed here by YouTube, and not by the SiIvaGunner team. Watch
+      through it to uncover the rip inside!
+    </div>
+    <button class="next-ad" on:click={() => dispatch("next")}>
+      No thanks, skip rip
+    </button>
   {/if}
   <div class="short-actions" on:click={(e) => e.stopPropagation()}>
     <button id="{rip.ytid}-like" on:click={like}>
@@ -302,7 +322,27 @@
     height: 3px;
     background: linear-gradient(to right, #319cb5 0%, #2fa09b 100%);
   }
-  :global(.shorts-video-container iframe) {
+  .error {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    box-sizing: border-box;
+    width: calc(100% - 20px);
+    padding: 5px;
+    border-radius: 5px;
+    z-index: 5;
+    background-color: rgba(255, 0, 0, 0.8);
+    color: white;
+  }
+  .next-ad {
+    font-size: 0.9em;
+    position: absolute;
+    border-radius: 1rem;
+    background-color: rgba(0, 0, 0, 0.8);
+    bottom: 40px;
+    left: 10px;
+  }
+  :global(.shorts-video-container:not(.adPlaying) iframe) {
     pointer-events: none;
   }
   :global(
@@ -363,5 +403,17 @@
       aspect-ratio: unset;
       width: 100%;
     }
+  }
+  /* Hide stuff when ads play */
+  .adPlaying .progress {
+    background: #ffc001;
+  }
+  .adPlaying .error {
+    background-color: #ffc001;
+    color: black;
+  }
+  .adPlaying .short-actions,
+  .adPlaying header {
+    display: none;
   }
 </style>
