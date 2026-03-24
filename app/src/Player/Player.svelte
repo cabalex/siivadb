@@ -115,39 +115,25 @@
     </div>
     <div class="filler-video" />
     <div class="video">
-      {#if !error}
-        <YouTube
-          options={{
-            playerVars: {
-              autoplay: 1,
-              modestbranding: 1,
-              rel: 0,
-              showinfo: 0,
-              playsinline: 1,
-            },
-          }}
-          videoId={$currentRip.ytid}
-          on:error={(e) => (error = true)}
-          on:ready={(e) => player.set(e.detail.target)}
-          on:end={(e) => nextRip()}
-        />
-      {:else}
-        <div class="error">
-          ⚠ Couldn't load that video. Visiting youtube.com.
-        </div>
-        <div style="height: 280px; overflow: hidden; background-color: black">
-          <iframe
-            width={window.innerWidth < 900 ? "150" : "500"}
-            height={window.innerWidth < 900 ? "150" : "340"}
-            style="transform: translateY(-60px)"
-            src={`https://www.youtube.com/watch?v=${$currentRip.ytid}&mode=fullscreen`}
-            frameborder="0"
-            title="YouTube video player"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen
-          />
-        </div>
+      {#if error}
+        <div class="error">An error occurred while loading the video.</div>
       {/if}
+      <YouTube
+        options={{
+          playerVars: {
+            autoplay: 1,
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            playsinline: 1,
+          },
+        }}
+        videoId={$currentRip.ytid}
+        on:error={(e) => (error = true)}
+        on:ready={(e) => player.set(e.detail.target)}
+        on:play={(e) => console.log(e.detail.target)}
+        on:end={(e) => nextRip()}
+      />
     </div>
   </div>
   {#if playlistAddModalVisible}
@@ -227,8 +213,9 @@
   }
   .error {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 0px;
+    left: 0px;
+    height: 30px;
     padding: 5px;
     border-radius: 5px;
     z-index: 5;
