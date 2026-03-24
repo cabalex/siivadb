@@ -25,8 +25,6 @@ class SiivaDB:
     durationTable = []
     jokeTable = []
 
-    browser = None
-
     def __init__(self, filename: str|None = None):
         if filename is not None:
             self.read(filename)
@@ -98,7 +96,7 @@ class SiivaDB:
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
     async def fetchJokes(self, names: list[str]) -> list[str]:
-        browser = await uc.start()
+        browser = await uc.start(sandbox=False)
         jokes = []
         for name in names:
             jokes.append(await self.fetchJoke(browser, name))
