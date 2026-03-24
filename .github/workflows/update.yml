@@ -27,7 +27,7 @@ jobs:
           python-version: "3.11.4"
 
       - name: Install dependencies
-        run: pip install requests zstd nodriver
+        run: pip install requests zstd zendriver
 
       - name: Run update script
         run: python "update_db.py"

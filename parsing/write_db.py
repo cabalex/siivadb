@@ -4,7 +4,7 @@ import re
 from urllib import parse
 import zstd
 import json
-import nodriver as uc # New SiivaGunner Wiki uses Cloudflare protection
+import zendriver as zd # New SiivaGunner Wiki uses Cloudflare protection
 
 """ Convert datetime object to UTC 2016 timestamp """
 def toUTCTimestamp(stamp: datetime):
@@ -30,7 +30,7 @@ class SiivaDB:
             self.read(filename)
 
 
-    async def _fetchPageData(self, browser: uc.Browser, name: str) -> dict:
+    async def _fetchPageData(self, browser: zd.Browser, name: str) -> dict:
         print(f"Fetching page data for {name}...")
         try:
             page = await browser.get(
@@ -60,7 +60,7 @@ class SiivaDB:
 
         return js
 
-    async def fetchJoke(self, browser: uc.Browser, name: str):
+    async def fetchJoke(self, browser: zd.Browser, name: str):
         try:
             js = await self._fetchPageData(browser, name)
             print(js)
@@ -96,15 +96,15 @@ class SiivaDB:
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
     async def fetchJokes(self, names: list[str]) -> list[str]:
-        browser = await uc.start(headless=True, sandbox=False)
+        browser = await zd.start()
         jokes = []
         for name in names:
             jokes.append(await self.fetchJoke(browser, name))
-        browser.stop()
+        await browser.stop()
         return jokes
     
     def fetchJokesSync(self, names: list[str]) -> list[str]:
-        return uc.loop().run_until_complete(self.fetchJokes(names))
+        return zd.loop().run_until_complete(self.fetchJokes(names))
 
     def addRip(self, name: str, ytid: str, uploadDate: datetime, duration: int, joke: str = None):
         self.nameTable.append(name)
