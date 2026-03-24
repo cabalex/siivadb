@@ -19,7 +19,7 @@
   async function fetchComments() {
     if ($currentRip && $currentRip.duration > 30) {
       let resp = await fetch(
-        `https://yt.lemnoslife.com/noKey/commentThreads?part=snippet,replies&videoId=${$currentRip.ytid}&order=relevance`
+        `https://yt.lemnoslife.com/noKey/commentThreads?part=snippet,replies&videoId=${$currentRip.ytid}&order=relevance`,
       );
       let json = await resp.json();
 
@@ -36,7 +36,7 @@
           likes: item.snippet.topLevelComment.snippet.likeCount,
           replies: item.snippet.totalReplyCount,
           publishedAt: new Date(
-            item.snippet.topLevelComment.snippet.publishedAt
+            item.snippet.topLevelComment.snippet.publishedAt,
           ),
         };
       });
@@ -52,7 +52,7 @@
 
   function nextRip() {
     let index = $currentResults.findIndex(
-      (rip) => rip.ytid === $currentRip.ytid
+      (rip) => rip.ytid === $currentRip.ytid,
     );
     if (index === -1) return;
     if (index === $currentResults.length - 1) index = 0;
@@ -108,7 +108,7 @@
         class="btn"
         rel="noopener noreferrer"
         target="_blank"
-        href={`https://siivagunner.fandom.com/wiki/${encodeURIComponent($currentRip.rawname.replace("#", ""))}`}
+        href={`https://siivagunner.wiki/wiki/${encodeURIComponent($currentRip.rawname.replace("#", ""))}`}
       >
         <OpenInNew />
       </a>

@@ -3,7 +3,7 @@
   import ImgCanvas from "../assets/ImgCanvas.svelte";
   import PlaylistPlus from "svelte-material-icons/PlaylistPlus.svelte";
   import ContentCopy from "svelte-material-icons/ContentCopy.svelte";
-  import OpenInNew from "svelte-material-icons/OpenInNew.svelte";
+  import Notebook from "svelte-material-icons/Notebook.svelte";
   import DateView from "../assets/DateView.svelte";
   import Joke from "../assets/Joke.svelte";
   import { createEventDispatcher } from "svelte";
@@ -83,10 +83,10 @@
       <a
         target="_blank"
         rel="noopener noreferrer"
-        href={`https://siivagunner.fandom.com/wiki/${encodeURIComponent(rip.rawname.replace("#", ""))}`}
+        href={`https://siivagunner.wiki/wiki/${encodeURIComponent(rip.rawname.replace("#", ""))}`}
         class="btn"
       >
-        <OpenInNew />
+        <Notebook />
       </a>
     </div>
   </div>

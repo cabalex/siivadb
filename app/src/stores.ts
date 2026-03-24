@@ -23,7 +23,7 @@ currentRip.subscribe((rip) => {
         rip,
       },
       "",
-      `?v=${rip.ytid}`
+      `?v=${rip.ytid}`,
     );
   } else if (history.state && history.state.rip) {
     history.pushState({}, "", "./");
@@ -50,9 +50,14 @@ export interface Playlist {
 export const playlists = writable<Playlist[]>(
   localStorage.getItem("siivadb-playlists")
     ? JSON.parse(localStorage.getItem("siivadb-playlists"))
-    : []
+    : [],
 );
 
 playlists.subscribe((playlists) => {
   localStorage.setItem("siivadb-playlists", JSON.stringify(playlists));
+});
+
+export const likes = writable<string[]>([]);
+likes.subscribe((likes) => {
+  localStorage.setItem("siivadb-likes", JSON.stringify(likes));
 });

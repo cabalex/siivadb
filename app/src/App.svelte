@@ -1,8 +1,11 @@
 <script lang="ts">
   import Player from "./Player/Player.svelte";
   import RipBrowser from "./RipBrowser/RipBrowser.svelte";
-  import Compass from "svelte-material-icons/Compass.svelte";
-  import { browser, options, playlists } from "./stores";
+  import Magnify from "svelte-material-icons/Magnify.svelte";
+  import ThumbsUp from "svelte-material-icons/ThumbUp.svelte";
+  import Video from "svelte-material-icons/Video.svelte";
+  import Shorts from "./Shorts/Shorts.svelte";
+  import { browser, currentRip, likes, options, playlists } from "./stores";
 
   let loaded = false;
   let selectedPlaylist = null;
@@ -11,6 +14,12 @@
   $browser.load().then(() => {
     loaded = true;
   });
+
+  $: {
+    if (selectedPlaylist === "shorts" && $currentRip) {
+      currentRip.set(null);
+    }
+  }
 
   function toggleSetting(setting: string) {
     options.update((o) => {
@@ -51,8 +60,24 @@
         class:active={selectedPlaylist === null}
         on:click={() => (selectedPlaylist = null)}
       >
-        <Compass />
-        Explore
+        <Magnify />
+        Search
+      </button>
+      <button
+        class="tab"
+        class:active={selectedPlaylist === "shorts"}
+        on:click={() => (selectedPlaylist = "shorts")}
+      >
+        <Video />
+        SiIvaShorts
+      </button>
+      <button
+        class="tab"
+        class:active={selectedPlaylist === "likes"}
+        on:click={() => (selectedPlaylist = "likes")}
+      >
+        <ThumbsUp />
+        Likes
       </button>
       {#each $playlists as playlist}
         <button
@@ -65,11 +90,27 @@
         </button>
       {/each}
     </div>
-    <RipBrowser
-      bind:updateScroll
-      browser={$browser}
-      bind:playlist={selectedPlaylist}
-    />
+    {#if selectedPlaylist === "shorts"}
+      <Shorts browser={$browser} />
+    {:else if selectedPlaylist === "likes"}
+      <RipBrowser
+        bind:updateScroll
+        browser={$browser}
+        playlist={{
+          name: "Liked Shorts",
+          createdAt: 0,
+          videos: $likes
+            .map((ytid) => $browser.rips.find((x) => x.ytid === ytid))
+            .filter((x) => x),
+        }}
+      />
+    {:else}
+      <RipBrowser
+        bind:updateScroll
+        browser={$browser}
+        bind:playlist={selectedPlaylist}
+      />
+    {/if}
   {:else}
     <h2>Loading...</h2>
   {/if}

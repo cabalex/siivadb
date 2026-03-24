@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import "./Joke.css";
-  import { currentRip, player, options } from "../stores";
+  import { currentRip, player as playerStore, options } from "../stores";
 
   export let rip;
+  export let player = undefined;
   export let searchValue = "";
   export let searchType = "all";
   let elem;
@@ -36,11 +37,12 @@
 
     times.forEach((link) => {
       link.addEventListener("click", (e) => {
+        const pl = player ?? $playerStore;
         e.stopPropagation();
-        if ($currentRip && $player && $currentRip.ytid === rip.ytid) {
-          $player.seekTo(
+        if (player || ($currentRip && pl && $currentRip.ytid === rip.ytid)) {
+          pl.seekTo(
             parseInt(link.innerText.split(":")[0]) * 60 +
-              parseInt(link.innerText.split(":")[1])
+              parseInt(link.innerText.split(":")[1]),
           );
         } else {
           currentRip.set(rip);
@@ -49,14 +51,14 @@
             if (!$currentRip || $currentRip !== rip) {
               return;
             }
-            if (!$player) {
+            if (!pl) {
               console.log("no player");
               setTimeout(seek, 100);
               return;
             }
-            $player.seekTo(
+            pl.seekTo(
               parseInt(link.innerText.split(":")[0]) * 60 +
-                parseInt(link.innerText.split(":")[1])
+                parseInt(link.innerText.split(":")[1]),
             );
           }
 
@@ -82,6 +84,7 @@
   .joke {
     width: 100%;
     height: 100%;
+    box-sizing: border-box;
 
     display: flex;
     flex-direction: column;
