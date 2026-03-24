@@ -8,6 +8,7 @@ import zendriver as zd # New SiivaGunner Wiki uses Cloudflare protection
 
 # Set to None to autodetect
 BROWSER_PATH = None#"/usr/bin/google-chrome"
+BROWSER_PATH = "/usr/bin/google-chrome"
 
 """ Convert datetime object to UTC 2016 timestamp """
 def toUTCTimestamp(stamp: datetime):
