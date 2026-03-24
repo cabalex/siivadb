@@ -99,7 +99,7 @@ class SiivaDB:
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
     async def fetchJokes(self, names: list[str]) -> list[str]:
-        browser = await zd.start(browser_executable_path=BROWSER_PATH, headless=True, sandbox=False)
+        browser = await zd.start(browser_executable_path=BROWSER_PATH, headless=True, sandbox=False, browser_connection_timeout=3, browser_connection_max_tries=15)
         jokes = []
         for name in names:
             jokes.append(await self.fetchJoke(browser, name))
