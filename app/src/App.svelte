@@ -55,7 +55,7 @@
       Search
     </button>
     <button
-      class="tab"
+      class="tab siivashorts-tab"
       class:active={selectedPlaylist === "shorts"}
       on:click={() => (selectedPlaylist = "shorts")}
     >
@@ -223,7 +223,7 @@
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    gap: 5px;
+    gap: 10px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -236,6 +236,9 @@
   }
   .tab.active {
     background-color: #555;
+  }
+  :global(.tab.active.siivashorts-tab svg) {
+    transform: scale(1.25);
   }
   @media screen and (max-width: 1100px) {
     main {
@@ -278,7 +281,7 @@
       flex-shrink: 1;
       margin: 0;
       font-size: 0.7rem;
-      gap: 0;
+      gap: 3px;
       background-color: transparent !important;
       outline: none;
       -webkit-tap-highlight-color: transparent;
@@ -302,6 +305,12 @@
     }
     :global(.tab.active svg) {
       transform: scale(1.25);
+    }
+    :global(aside .tab.siivashorts-tab svg) {
+      transform: scale(1.25) translateY(-2px);
+    }
+    :global(aside .tab.siivashorts-tab.active svg) {
+      transform: scale(1.5) translateY(-4px);
     }
   }
 </style>
