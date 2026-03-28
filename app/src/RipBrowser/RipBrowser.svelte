@@ -11,7 +11,8 @@
   import Share from "svelte-material-icons/ShareVariant.svelte";
   import MusicNote from "svelte-material-icons/MusicNote.svelte";
   import RipBrowser from "./RipBrowser";
-  import { onMount } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
+  import TowerFilled from "../assets/TowerFilled.svelte";
 
   export let browser: RipBrowser;
   export let playlist = null;
@@ -33,6 +34,8 @@
 
   let playlistCopied = false;
   let scrollToIndex = 0;
+
+  const dispatch = createEventDispatcher();
 
   onMount(() => {
     if (window.location.search.includes("pl=")) {
@@ -113,6 +116,9 @@
       $currentResults = browser.rips;
     }
   }
+
+  let listHeight =
+    window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0);
 </script>
 
 <main>
@@ -130,7 +136,8 @@
       placeholder={playlist
         ? "Search this playlist..."
         : "Search thousands of high quality rips..."}
-      bind:value={searchValue}
+      value={searchValue}
+      on:change={(e) => (searchValue = e.target.value)}
     />
     <span
       >Showing {start + 1} to {end} of {$currentResults.length} rips {window.location.search.includes(
@@ -159,7 +166,7 @@
       itemCount={$currentResults.length}
       itemSize={window.innerWidth < 900 ? 220 : 120}
       width="100%"
-      height={window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0)}
+      height={listHeight}
       scrollToAlignment="start"
       {scrollToIndex}
       on:itemsUpdated={(e) => {
@@ -186,6 +193,26 @@
               <Delete />
             </button>
           {/if}
+        {:else if $currentResults !== browser.rips}
+          <div class="search-header">
+            <span>
+              {$currentResults.length} results
+            </span>
+            {#if $currentResults.length > 0}
+              <button
+                title="Open search in SiIvaShorts"
+                class="siivashorts-btn"
+                on:click={() => dispatch("shorts", $currentResults)}
+              >
+                <TowerFilled />
+                <img
+                  src="https://i.ytimg.com/vi/{$currentResults[0]
+                    .ytid}/default.jpg"
+                  alt="SiIvaShorts"
+                />
+              </button>
+            {/if}
+          </div>
         {/if}
       </div>
       <div slot="item" let:index let:style {style}>
@@ -251,6 +278,12 @@
     on:close={() => (addModalVideo = null)}
   />
 {/if}
+
+<svelte:body
+  on:resize={() => {
+    listHeight = window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0);
+  }}
+/>
 
 <style>
   main {
@@ -318,6 +351,46 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .search-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .siivashorts-btn {
+    position: relative;
+    border: none;
+    outline: none;
+    padding: 0.25rem;
+    height: 96px;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #555;
+    background: conic-gradient(from 0deg, #319cb5, #92acb1, #2fa09b, #319cb5);
+  }
+  .siivashorts-btn:hover {
+    border-color: #aaa;
+  }
+  .siivashorts-btn img {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 9 / 16;
+    border-radius: 0.25rem;
+    object-fit: cover;
+  }
+  :global(.siivashorts-btn svg) {
+    position: absolute;
+    width: 1.5em;
+    height: 1.5em;
+    z-index: 10;
+    left: 50%;
+    top: 50%;
+    filter: drop-shadow(0 0 4px black);
+    transform: translate(-50%, -50%);
   }
   .last {
     margin: 0 auto;

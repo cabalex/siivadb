@@ -4,8 +4,8 @@
   import Magnify from "svelte-material-icons/Magnify.svelte";
   import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
   import ThumbUpOutline from "svelte-material-icons/ThumbUpOutline.svelte";
-  import Video from "svelte-material-icons/Video.svelte";
-  import VideoOutline from "svelte-material-icons/VideoOutline.svelte";
+  import TowerFilled from "./assets/TowerFilled.svelte";
+  import TowerOutline from "./assets/TowerOutline.svelte";
   import Shorts from "./Shorts/Shorts.svelte";
   import { browser, currentRip, likes, options, playlists } from "./stores";
 
@@ -14,14 +14,18 @@
     ? "shorts"
     : null;
   let updateScroll;
+  let stack = [];
 
   $browser.load().then(() => {
     loaded = true;
   });
 
   $: {
-    if (selectedPlaylist === "shorts" && $currentRip) {
-      currentRip.set(null);
+    if (selectedPlaylist === "shorts") {
+      if ($currentRip) currentRip.set(null);
+      window.location.hash = "/shorts";
+    } else {
+      window.location.hash = "";
     }
   }
 
@@ -56,9 +60,9 @@
       on:click={() => (selectedPlaylist = "shorts")}
     >
       {#if selectedPlaylist === "shorts"}
-        <Video />
+        <TowerFilled />
       {:else}
-        <VideoOutline />
+        <TowerOutline />
       {/if}
       SiIvaShorts
     </button>
@@ -105,11 +109,22 @@
   <main>
     {#if loaded}
       {#if selectedPlaylist === "shorts"}
-        <Shorts browser={$browser} />
+        <Shorts bind:stack browser={$browser} />
       {:else if selectedPlaylist === "likes"}
         <RipBrowser
           bind:updateScroll
           browser={$browser}
+          on:shorts={(e) => {
+            stack = [
+              ...stack,
+              {
+                lookahead: e.detail,
+                position: 0,
+                fetchMore: false,
+              },
+            ];
+            selectedPlaylist = "shorts";
+          }}
           playlist={{
             name: "Liked Shorts",
             createdAt: 0,
@@ -122,6 +137,17 @@
           bind:updateScroll
           browser={$browser}
           bind:playlist={selectedPlaylist}
+          on:shorts={(e) => {
+            stack = [
+              ...stack,
+              {
+                lookahead: e.detail,
+                position: 0,
+                fetchMore: false,
+              },
+            ];
+            selectedPlaylist = "shorts";
+          }}
         />
       {/if}
     {:else}
@@ -273,6 +299,9 @@
       line-height: 1;
       font-size: 0.7rem;
       width: 100%;
+    }
+    :global(.tab.active svg) {
+      transform: scale(1.25);
     }
   }
 </style>

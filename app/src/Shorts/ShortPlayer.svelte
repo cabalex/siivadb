@@ -7,9 +7,11 @@
   import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
   import ThumbUpOutline from "svelte-material-icons/ThumbUpOutline.svelte";
   import YouTubeIcon from "./lib/YouTubeIcon.svelte";
+  import Pause from "svelte-material-icons/Pause.svelte";
   import Share from "svelte-material-icons/Share.svelte";
   import Notebook from "svelte-material-icons/Notebook.svelte";
   import DateView from "../assets/DateView.svelte";
+  import getWikilink from "../assets/getWikilink";
 
   export let rip: RipBrowser["rips"][0];
   export let position = 0;
@@ -47,7 +49,7 @@
   let adPlaying = false;
   function updateProgress() {
     requestAnimationFrame(updateProgress);
-    if (!player || offset !== 0) return;
+    if (!player || offset !== 0 || !player.playerInfo?.progressState) return;
 
     const currentTime = player.getCurrentTime();
     const duration = player.getDuration();
@@ -85,14 +87,15 @@
   }
 
   function watchOnYouTube() {
-    window.open(`https://www.youtube.com/watch?v=${rip.ytid}`, "_blank");
+    if (player) player.pauseVideo();
+    window.open(
+      `https://www.youtube.com/watch?v=${rip.ytid}&t=${Math.floor(player.getCurrentTime())}`,
+      "_blank",
+    );
   }
 
   function wiki() {
-    window.open(
-      `https://siivagunner.wiki/wiki/${encodeURIComponent(rip.name + " - " + rip.series)}`,
-      "_blank",
-    );
+    window.open(getWikilink(rip.name + " - " + rip.series), "_blank");
   }
 
   function share() {
@@ -109,6 +112,8 @@
       alert("Link copied to clipboard!");
     }
   }
+
+  let paused = false;
 </script>
 
 <div
@@ -154,6 +159,7 @@
       error = e.detail.data;
     }}
     on:play={() => {
+      error = null;
       if (Math.abs(offset) >= 1) player.mute();
     }}
     on:end={() => {
@@ -164,6 +170,9 @@
       error = null;
       player.setLoop(true);
       if (Math.abs(offset) >= 1) player.mute();
+    }}
+    on:stateChange={(e) => {
+      paused = e.detail.data === 2;
     }}
   />
   {#if error}
@@ -178,6 +187,12 @@
       No thanks, skip rip
     </button>
   {/if}
+  {#if paused}
+    <div class="paused-overlay">
+      <Pause />
+    </div>
+  {/if}
+
   <div class="short-actions" on:click={(e) => e.stopPropagation()}>
     <button id="{rip.ytid}-like" on:click={like}>
       {#if $likes.includes(rip.ytid)}
@@ -207,17 +222,27 @@
   </div>
   <header>
     {#if rip.series}
-      <h3>
+      <button
+        class="series"
+        on:click={(e) => {
+          e.stopPropagation();
+          dispatch("fetchRips", rip.series);
+        }}
+      >
         <img
           src="https://i.ytimg.com/vi/{rip.ytid}/default.jpg"
           alt="{rip.series} thumbnail"
         />
         <div class="text">
-          {rip.series}
+          <span class="series-name">
+            {rip.series}
+          </span>
           <span>•</span>
           <DateView date={rip.postTime} />
         </div>
-      </h3>
+      </button>
+    {:else}
+      <h3 class="series"><DateView date={rip.postTime} /></h3>
     {/if}
     <h2>{rip.name}</h2>
     {#if $options.showJokes}
@@ -245,7 +270,11 @@
           on:wheel={(e) => e.stopPropagation()}
           on:click={(e) => e.stopPropagation()}
         >
-          <Joke {player} {rip} />
+          <Joke
+            {player}
+            {rip}
+            on:link={(e) => dispatch("fetchJokes", e.detail)}
+          />
         </div>
       {/key}
     {/if}
@@ -285,20 +314,28 @@
     background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
     color: white;
   }
-  header h3 {
+  header .series {
+    background-color: transparent;
+    border: none;
+    padding: 0;
     margin: 0;
+    text-align: left;
     font-weight: normal;
     font-size: unset;
-    display: flex;
-    align-items: center;
     gap: 10px;
     padding: 0 10px;
     line-height: 1.25;
   }
-  :global(.shorts-video-container header h3 .text span) {
+  header .series:hover .series-name {
+    text-decoration: underline;
+  }
+  header .series:not(:focus-visible) {
+    outline: none;
+  }
+  :global(.shorts-video-container header .series .text span:not(.series-name)) {
     color: #aaa;
   }
-  header h3 img {
+  header .series img {
     width: 3rem;
     border-radius: 0.4rem;
     height: 1.5rem;
@@ -361,6 +398,35 @@
     height: 100%;
     max-width: 100%;
     aspect-ratio: 9 / 16;
+  }
+  .paused-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.9);
+    line-height: 0;
+    padding: 0.25em;
+    border-radius: 100rem;
+    font-size: 3em;
+    opacity: 0.8;
+    animation: popIn 0.1s ease-out;
+  }
+  @keyframes popIn {
+    0% {
+      transform: translate(-50%, -50%) scale(0.5);
+      opacity: 0;
+    }
+    70% {
+      transform: translate(-50%, -50%) scale(1.2);
+      opacity: 0.8;
+    }
+    to {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.8;
+    }
   }
   .short-actions {
     position: absolute;

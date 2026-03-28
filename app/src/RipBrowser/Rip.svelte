@@ -7,6 +7,7 @@
   import DateView from "../assets/DateView.svelte";
   import Joke from "../assets/Joke.svelte";
   import { createEventDispatcher } from "svelte";
+  import getWikilink from "../assets/getWikilink";
 
   export let rip;
   export let searchType;
@@ -56,17 +57,19 @@
     </div>
     <div class="title">
       <h2>{rip.name}</h2>
-      <span
-        class="series"
-        on:click={(e) => {
-          e.stopPropagation();
-          searchType = "titles";
-          searchValue = rip.series || "";
-        }}
-      >
-        {rip.series || ""}
-      </span>
-      -
+      {#if rip.series}
+        <span
+          class="series"
+          on:click={(e) => {
+            e.stopPropagation();
+            searchType = "titles";
+            searchValue = rip.series || "";
+          }}
+        >
+          {rip.series || ""}
+        </span>
+        -
+      {/if}
       <DateView date={rip.postTime} />
     </div>
     <Joke bind:searchValue bind:searchType {rip} />
@@ -83,7 +86,7 @@
       <a
         target="_blank"
         rel="noopener noreferrer"
-        href={`https://siivagunner.wiki/wiki/${encodeURIComponent(rip.rawname.replace("#", ""))}`}
+        href={getWikilink(rip.rawname)}
         class="btn"
       >
         <Notebook />

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import "./Joke.css";
   import { currentRip, player as playerStore, options } from "../stores";
 
@@ -9,12 +9,15 @@
   export let searchType = "all";
   let elem;
 
+  const dispatch = createEventDispatcher();
+
   function parse(joke: string) {
     return joke
       .replace("<", "&lt;")
       .replace(/\n\n/gm, "\n")
       .replace(/\n+$/gm, "")
       .replace(/\"(.+?)\"/gm, '<span class="link">$1</span>')
+      .replace(/''(.+?)''/gm, '<span class="link">$1</span>')
       .replace(/(\d:\d\d)/gm, '<span class="time">$1</span>');
   }
 
@@ -28,6 +31,7 @@
     links.forEach((link) => {
       link.addEventListener("click", (e) => {
         e.stopPropagation();
+        dispatch("link", link.innerText);
         searchValue = link.innerText;
         searchType = "jokes";
       });

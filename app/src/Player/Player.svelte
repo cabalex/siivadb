@@ -9,6 +9,7 @@
   import PlayerComments from "./PlayerComments.svelte";
   import PlaylistAddModal from "../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
   import { createEventDispatcher } from "svelte";
+  import getWikilink from "../assets/getWikilink";
 
   let error = false;
   let commentsTimeout = null;
@@ -108,7 +109,7 @@
         class="btn"
         rel="noopener noreferrer"
         target="_blank"
-        href={`https://siivagunner.wiki/wiki/${encodeURIComponent($currentRip.rawname.replace("#", ""))}`}
+        href={getWikilink($currentRip.rawname)}
       >
         <OpenInNew />
       </a>
