@@ -6,9 +6,6 @@ import zstd
 import json
 import zendriver as zd # New SiivaGunner Wiki uses Cloudflare protection
 
-# Set to None to autodetect
-BROWSER_PATH = None#"/usr/bin/google-chrome"
-BROWSER_PATH = "/usr/bin/google-chrome"
 
 """ Convert datetime object to UTC 2016 timestamp """
 def toUTCTimestamp(stamp: datetime):
@@ -17,10 +14,14 @@ def toUTCTimestamp(stamp: datetime):
 def fromUTCTimestamp(seconds: int):
     return datetime(2016, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=seconds)
 
-wikilinks = re.compile(r"\'?\'?\[\[(.+?)(?:\|.+)?\]\]\'?\'?")
-externallinks = re.compile(r"[^\[]\[[^ \[]+ (.+?)\][^\]]")
-wikicategories = re.compile(r"\'?\'?\{\{(?:[\w ]+)\|(.+?)?\}\}\'?\'?")
-categorylinks = re.compile(r"\[\[Category:.+?\]\]")
+wikifiles = re.compile(r"\[\[File:.+?\]\]")
+wikilinks = re.compile(r"\"?\'?\'?\[\[(?:.+?\|)??([^|]+?)\]\]\'?\'?\"?")
+wikicomments = re.compile(r"<!--.+?-->", flags=re.DOTALL | re.MULTILINE)
+externallinks = re.compile(r"([^\[])\[http[^ \[]+ (.+?)\]([^\]])")
+wikicategories = re.compile(r"\'?\'?\"?\{\{(?:Category|category)\|(?:.+?\|)?([^|]+?)?\}\}\"?\'?\'?")
+wikirefs = re.compile(r"<ref.+?(?:</ref>|/>)", flags=re.DOTALL | re.MULTILINE)
+collapsedWikitables = re.compile(r"{\|[ ]*class[ ]*=[ ]*\"[^\"]*mw-collapsed.+\|}", flags=re.DOTALL | re.MULTILINE)
+nowiki = re.compile(r"<\/?nowiki[ \/]*?>", flags=re.IGNORECASE)
 
 class SiivaDB:
     nameTable = []
@@ -44,7 +45,7 @@ class SiivaDB:
             print(f"Failed to fetch page for {name}: {e}")
             raise e
 
-        tries = 10
+        tries = 5
         element = None
         while tries > 0:
             try:
@@ -76,9 +77,39 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
         
         if element is None:
             raise Exception(f"Failed to fetch page data for {name}.")
-        js = json.loads(element.text)
+        text = await element.apply("(elem) => elem.textContent")
+        js = json.loads(fr"{text}")
 
         return js
+      
+    def parseJokeText(self, wikitext: str):
+        joke = None
+        wikitext = "\n".join([x.strip() for x in wikitext.split("\n")])
+        if "==Joke" in wikitext:
+            joke = wikitext.split("==Joke")[1].split("=\n", 1)[1].split("==")[0].strip()
+        elif "== Joke" in wikitext:
+            joke = wikitext.split("== Joke")[1].split("=\n", 1)[1].split("==")[0].strip()
+
+        if joke:
+            if '<gallery' in joke:
+                  joke = joke.split("<gallery")[0].strip()
+
+            if "[[Category:" in joke:
+                # Split before the Categories section
+                joke = joke.split("[[Category:")[0].strip()
+
+            joke = wikicomments.sub("", joke)
+            joke = collapsedWikitables.sub("[View this table on the Wiki.]", joke)
+            joke = wikifiles.sub("", joke)
+            joke = wikirefs.sub("", joke)
+            joke = wikilinks.sub(r'"\1"', joke)
+            joke = wikicategories.sub(r"\1", joke)
+            joke = externallinks.sub(r"\1\2\3", joke)
+            joke = nowiki.sub("", joke)
+            
+            return joke
+
+        return "This rip doesn't appear to have traditional \"jokes\". It must be VERY high quality..."
 
     async def fetchJoke(self, browser: zd.Browser, name: str):
         try:
@@ -91,32 +122,13 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
 
             wikitext = js["parse"]["wikitext"]["*"]
 
-            joke = None
-            if "==Joke" in wikitext:
-                joke = wikitext.split("==Joke")[1].split("==\n")[1].split("==")[0].strip()
-            elif "== Joke" in wikitext:
-                joke = wikitext.split("== Joke")[1].split("==\n")[1].split("==")[0].strip()
-
-            if joke:
-                joke = categorylinks.sub("", joke)
-                joke = wikilinks.sub(r"\1", joke)
-                joke = wikicategories.sub(r"\1", joke)
-                joke = externallinks.sub(r"\1", joke)
-
-                if '<gallery' in joke:
-                    joke = joke.split("<gallery")[0].strip()
-
-                if 'article-table' in joke:
-                    joke = joke.split("{|")[0].strip() + " [Please see the Wiki for the full list of jokes.]"
-                return joke
-
-            return "This rip doesn't appear to have traditional \"jokes\". It must be VERY high quality..."
+            return self.parseJokeText(wikitext)
         except Exception as e:
             print(f"Failed to fetch joke for {name}: {e}")
             return "Something went wrong when fetching the joke... maybe we just didn't get it? :("
 
     async def fetchJokes(self, names: list[str]) -> list[str]:
-        browser = await zd.start(browser_executable_path=BROWSER_PATH, headless=True, sandbox=False, browser_connection_timeout=3, browser_connection_max_tries=15)
+        browser = await zd.start(headless=True, sandbox=False, browser_connection_timeout=3, browser_connection_max_tries=15)
         jokes = []
         for name in names:
             jokes.append(await self.fetchJoke(browser, name))

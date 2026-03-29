@@ -5,11 +5,14 @@
   import ChevronUp from "svelte-material-icons/ChevronUp.svelte";
   import ChevronDown from "svelte-material-icons/ChevronDown.svelte";
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
+  import nice from "../assets/nice.svg";
+  import getShort, { getForYou, scrollPast } from "./ForYou";
+  import { fly } from "svelte/transition";
 
   export let browser: RipBrowser;
 
   interface StackItem {
-    lookahead: RipBrowser["rips"];
+    lookahead: Array<RipBrowser["rips"][number] & { reason?: string }>;
     position: number;
     fetchMore: boolean;
   }
@@ -36,22 +39,58 @@
   $: current = stack[stack.length - 1];
 
   function getNextShort() {
-    const index = (Math.random() * browser.rips.length) | 0;
-    const next = browser.rips[index];
-    return next;
+    return getShort(browser);
   }
 
+  let menuOpen = false;
+  let lastScroll = Date.now();
   function next() {
-    if (current.fetchMore) {
+    if (current.fetchMore && current.position >= current.lookahead.length - 2) {
       current.lookahead = [...current.lookahead, getNextShort()];
     }
     if (current.position < current.lookahead.length - 1) {
+      if (
+        current.fetchMore &&
+        !$likes.includes(current.lookahead[current.position].ytid)
+      ) {
+        scrollPast(
+          current.lookahead[current.position].ytid,
+          Date.now() - lastScroll,
+        );
+      }
       current.position += 1;
+      lastScroll = Date.now();
     }
+    // reset scroll position when changed
+    [...document.getElementsByClassName("description-container")].forEach(
+      (elem) => {
+        (elem as HTMLElement).scrollTop = 0;
+      },
+    );
   }
 
   function prev() {
-    if (current.position > 0) current.position -= 1;
+    if (current.position > 0) {
+      current.position -= 1;
+      lastScroll = Date.now();
+      // reset scroll position when changed
+      [...document.getElementsByClassName("description-container")].forEach(
+        (elem) => {
+          (elem as HTMLElement).scrollTop = 0;
+        },
+      );
+    }
+  }
+
+  let showLikeNotification = false;
+  function like() {
+    if (!localStorage.getItem("siivadb-shownlikenotification")) {
+      localStorage.setItem("siivadb-shownlikenotification", "true");
+      showLikeNotification = true;
+      setTimeout(() => {
+        showLikeNotification = false;
+      }, 5000);
+    }
   }
 
   function fetchRips(name: string, type: "series" | "jokes") {
@@ -80,7 +119,16 @@
   function getRipIndex(offset: number, videoNum: number) {
     if (offset === 0) return videoNum;
     if (offset === current.lookahead.length - 1) {
-      return current.lookahead.length - 3 + videoNum;
+      const offsets = [
+        Math.floor((offset + 1) / 3) * 3,
+        Math.floor(offset / 3) * 3 + 1,
+        Math.floor((offset - 1) / 3) * 3 + 2,
+      ];
+      const index = offsets.findIndex((o) => o >= current.lookahead.length);
+      if (index !== -1) {
+        offsets[index] -= 3;
+      }
+      return offsets[videoNum];
     }
     if (videoNum === 0) {
       return Math.floor((offset + 1) / 3) * 3;
@@ -97,6 +145,11 @@
     touchStartY = e.touches[0].clientY;
     e.stopPropagation();
   }
+
+  // Visible: 0 1 2 3 4 5
+  // 1st Vid: 0 0 3 3 3 6
+  // 2nd Vid: 1 1 1 4 4 4
+  // 3rd Vid: 2 2 2 2 5 5
 
   function touchMove(e: TouchEvent) {
     e.preventDefault();
@@ -125,10 +178,31 @@
     }, 0);
   }
 
-  // Visible: 0 1 2 3 4 5
-  // 1st Vid: 0 0 3 3 3 6
-  // 2nd Vid: 1 1 1 4 4 4
-  // 3rd Vid: 2 2 2 2 5 5
+  /* Menu options */
+  let autoplay = false;
+  function shuffleCurrent() {
+    const position = current.position;
+    current.lookahead = [
+      ...current.lookahead.slice(0, position + 1),
+      ...current.lookahead
+        .slice(current.position + 1)
+        .map((a) => ({ a, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ a }) => a),
+    ];
+    menuOpen = false;
+    next();
+  }
+  function resetWatchHistory() {
+    if (
+      confirm(
+        "Are you sure you want to reset your watch history? You'll start seeing repeats in your feed. This cannot be undone.\n\n(This doesn't delete your likes or playlists.)",
+      )
+    ) {
+      localStorage.removeItem("siivadb-seen");
+      location.reload();
+    }
+  }
 </script>
 
 <main>
@@ -147,10 +221,13 @@
           offset={getRipIndex(current.position, i) -
             current.position +
             touchDelta}
+          {autoplay}
           on:prev={() => prev()}
           on:next={() => next()}
+          on:like={() => like()}
           on:fetchRips={(e) => fetchRips(e.detail, "series")}
           on:fetchJokes={(e) => fetchRips(e.detail, "jokes")}
+          on:menu={() => (menuOpen = true)}
         />
       {/if}
     {/each}
@@ -163,6 +240,74 @@
       >
         <ArrowLeft />
       </button>
+    {/if}
+    {#if showLikeNotification}
+      <div
+        class="like-notification"
+        transition:fly={{ y: -100, duration: 300 }}
+      >
+        <img src={nice} alt="nice >:]" />
+        <div class="text">
+          <h3>nice &gt;:]</h3>
+          <p>
+            Your likes affect what you're recommended next. Keep liking rips to
+            improve your feed!
+          </p>
+        </div>
+      </div>
+    {/if}
+    {#if menuOpen}
+      {@const forYou = getForYou(browser)}
+      <div class="menu" transition:fly={{ y: 50, duration: 200 }}>
+        <p>
+          <b>Why this rip?</b>
+          {current.lookahead[current.position]?.reason ??
+            "It's next in the playlist"}
+        </p>
+        <p>
+          Watched {forYou.seen.size}/{browser.rips.length} rips ({(
+            (forYou?.seen.size || 0) / browser.rips.length
+          ).toFixed(3)}%)
+        </p>
+        <p>
+          Interests:{" "}
+          {forYou
+            ?.topTerms()
+            .map((t) => `${t.term} (${Math.round(t.weight)})`)
+            .join(", ") || "None"}
+        </p>
+        {#if !current.fetchMore}
+          <button
+            class="menu-item"
+            on:click={() => {
+              shuffleCurrent();
+              menuOpen = false;
+            }}
+          >
+            Shuffle playlist
+          </button>
+        {/if}
+        <button
+          class="menu-item"
+          on:click={() => {
+            autoplay = !autoplay;
+            menuOpen = false;
+          }}
+        >
+          Autoplay next rip
+          {#if autoplay}
+            (on)
+          {:else}
+            (off)
+          {/if}
+        </button>
+        <button class="menu-item danger" on:click={resetWatchHistory}>
+          Reset watch history
+        </button>
+        <button class="menu-item" on:click={() => (menuOpen = false)}>
+          Close
+        </button>
+      </div>
     {/if}
   </div>
   <div class="desktop-actions">
@@ -203,7 +348,7 @@
   }
   .videos-list {
     position: relative;
-    width: 100%;
+    aspect-ratio: 9 / 16;
     height: 100%;
     overflow: hidden;
   }
@@ -218,9 +363,77 @@
     left: 10px;
     z-index: 10;
   }
+  .like-notification {
+    position: absolute;
+    width: calc(100% - 40px);
+    left: 10px;
+    top: 10px;
+    padding: 10px;
+    z-index: 11;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    background-color: rgba(100, 100, 100, 0.7);
+    border-radius: 10px;
+  }
+  .like-notification h3,
+  .like-notification p {
+    margin: 0;
+  }
+  .menu {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #222;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    box-shadow: 0 -10px 10px rgba(0, 0, 0, 0.5);
+  }
+  .menu p {
+    padding: 5px 15px;
+    font-size: 0.8em;
+    margin: 0;
+    color: #aaa;
+    font-style: italic;
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+  .menu > p:first-child {
+    padding-top: 15px;
+  }
+  .menu > p:last-of-type {
+    padding-bottom: 15px;
+  }
+  .menu-item {
+    justify-content: flex-start;
+    text-align: left;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-top: 1px solid #333;
+    background: none;
+    color: white;
+    border-radius: 0;
+    transition: background-color 0.2s ease-in-out;
+  }
+  .menu-item.danger {
+    color: #ff5555;
+  }
+  .menu-item:focus-visible,
+  .menu-item:hover {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.2);
+  }
   @media screen and (max-width: 700px) {
     .desktop-actions {
       display: none;
+    }
+    .videos-list {
+      width: 100%;
     }
   }
   @media screen and (max-width: 1100px) {

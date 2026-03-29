@@ -11,13 +11,66 @@
 
   const dispatch = createEventDispatcher();
 
+  function replaceWikitables(joke: string) {
+    const matches = joke.matchAll(
+      /{\|[ ]*class[ ]*=[ ]*"?[^"]*[(wikitable)|(article-table)][^"]*"?.+\|}\n*/gms,
+    );
+    for (const match of matches) {
+      const table = match[0]
+        .replace(/\n([\|!])/gm, "\nNEWLINE$1")
+        .split("\nNEWLINE")
+        .slice(1, -1);
+      let html = "";
+      for (let line of table) {
+        line = line.replace(/&lt;br>/gm, "<br />");
+        if (line.startsWith("|-")) {
+          if (html !== "") {
+            html += "</tr>";
+          }
+          html += "<tr>";
+        } else if (line.startsWith("|") && !line.startsWith("|+")) {
+          if (line.includes("span")) {
+            line = line.replace(
+              /\|[^\|]*?(\w+)[ ]*=[ "]*(\d+)[ "]*[^\|]*\|/gm,
+              '|<td $1="$2">',
+            );
+          } else {
+            html += "<td>";
+          }
+          html += line.slice(1) + "</td>";
+        } else if (line.startsWith("!")) {
+          // !! can be used to define multiple headers in the same line
+          html +=
+            "<th>" +
+            line.slice(1).trim().replace(/!!/gm, "</th><th>") +
+            "</th>";
+        }
+      }
+      joke = joke.replace(match[0], "<table>" + html + "</table>");
+    }
+    return joke;
+  }
+
   function parse(joke: string) {
+    joke = joke
+      .replace(/<!--.+?-->/gm, "")
+      .replaceAll("<", "&lt;")
+      .replace(/^\*(.+?)$/gm, "<li>$1</li>")
+      // surround lis with ul
+      .replace(/(<li>.+<\/li>)/gms, "<ul>$1</ul>");
+    joke = replaceWikitables(joke);
     return joke
-      .replace("<", "&lt;")
       .replace(/\n\n/gm, "\n")
-      .replace(/\n+$/gm, "")
-      .replace(/\"(.+?)\"/gm, '<span class="link">$1</span>')
-      .replace(/''(.+?)''/gm, '<span class="link">$1</span>')
+      .trim()
+      .replace(
+        /"([^"]+\|)?([^">]+?)"([^\>])/gm,
+        '<span class="link">$2</span>$3',
+      )
+      .replace(
+        /{{Incomplete list.*?}}/gim,
+        "<span class='incomplete'>⚠️ Incomplete list</span>",
+      )
+      .replace(/''([^<]+?)''/gm, '<span class="link">$1</span>')
       .replace(/(\d:\d\d)/gm, '<span class="time">$1</span>');
   }
 
@@ -114,5 +167,30 @@
     max-height: 100%;
     margin: auto;
     white-space: pre-wrap;
+  }
+  :global(.joke .incomplete) {
+    font-style: italic;
+    display: inline-block;
+    margin: 5px 0;
+    padding: 5px 10px;
+    font-size: 0.9em;
+    background-color: rgba(100, 100, 100, 0.5);
+    border-radius: 5px;
+  }
+  :global(.joke table) {
+    border-collapse: collapse;
+    margin: 10px 0;
+  }
+  :global(.joke table td, .joke table th) {
+    border: 1px solid #555;
+    padding: 5px;
+  }
+  :global(.joke table th) {
+    background-color: rgba(100, 100, 100, 0.5);
+  }
+  :global(.joke ul) {
+    white-space: normal;
+    margin: 0;
+    padding-inline-start: 1.5em;
   }
 </style>

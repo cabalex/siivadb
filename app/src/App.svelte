@@ -10,15 +10,20 @@
   import { browser, currentRip, likes, options, playlists } from "./stores";
 
   let loaded = false;
+  let loadProgress = 0;
   let selectedPlaylist = window.location.hash.includes("shorts")
     ? "shorts"
     : null;
   let updateScroll;
   let stack = [];
 
-  $browser.load().then(() => {
-    loaded = true;
-  });
+  $browser
+    .load((progress) => {
+      loadProgress = progress;
+    })
+    .then(() => {
+      loaded = true;
+    });
 
   $: {
     if (selectedPlaylist === "shorts") {
@@ -151,7 +156,16 @@
         />
       {/if}
     {:else}
-      <h2>Loading...</h2>
+      <div class="loading">
+        {#if Math.round(loadProgress * 100) === 100}
+          <h2>Decompressing...</h2>
+        {:else}
+          <h2>Loading ({Math.round(loadProgress * 100)}%)...</h2>
+        {/if}
+        <div class="progress-bar">
+          <div class="progress" style="width: {loadProgress * 100}%"></div>
+        </div>
+      </div>
     {/if}
     <div class="nav"></div>
   </main>
@@ -160,6 +174,42 @@
 <Player on:scroll={(e) => updateScroll(e.detail)} />
 
 <style>
+  .loading {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .progress-bar {
+    width: 80%;
+    height: 8px;
+    background-color: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0 auto;
+    margin-top: 8px;
+  }
+  .progress {
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      #319cb5 0%,
+      #5fcec9 50%,
+      #319cb5 100%
+    );
+    animation: backgroundMove 2s linear infinite;
+    background-size: 200% 100%;
+  }
+  @keyframes backgroundMove {
+    from {
+      background-position: 0% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
   .content {
     width: 100%;
     height: 100%;

@@ -4,19 +4,22 @@
   import { createEventDispatcher, onMount } from "svelte";
   import Joke from "../assets/Joke.svelte";
   import { likes, options } from "../stores";
-  import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
+  import { LottiePlayer } from "@lottiefiles/svelte-lottie-player";
   import ThumbUpOutline from "svelte-material-icons/ThumbUpOutline.svelte";
   import YouTubeIcon from "./lib/YouTubeIcon.svelte";
   import Pause from "svelte-material-icons/Pause.svelte";
   import Share from "svelte-material-icons/Share.svelte";
   import Notebook from "svelte-material-icons/Notebook.svelte";
+  import DotsVertical from "svelte-material-icons/DotsVertical.svelte";
   import DateView from "../assets/DateView.svelte";
   import getWikilink from "../assets/getWikilink";
+  import { addLike, removeLike } from "./ForYou";
 
   export let rip: RipBrowser["rips"][0];
   export let position = 0;
   export let offset = 0;
   export let swiping = false;
+  export let autoplay = false;
 
   let oldPosition = position;
   let oldOffset = offset;
@@ -77,13 +80,21 @@
 
   /* Short actions */
   function like() {
+    let addingLike = true;
     likes.update((l) => {
       if (l.includes(rip.ytid)) {
+        addingLike = false;
         return l.filter((id) => id !== rip.ytid);
       } else {
         return [...l, rip.ytid];
       }
     });
+    if (addingLike) {
+      dispatch("like", rip.ytid);
+      addLike(rip.ytid);
+    } else {
+      removeLike(rip.ytid);
+    }
   }
 
   function watchOnYouTube() {
@@ -95,7 +106,7 @@
   }
 
   function wiki() {
-    window.open(getWikilink(rip.name + " - " + rip.series), "_blank");
+    window.open(getWikilink(rip.rawname), "_blank");
   }
 
   function share() {
@@ -103,13 +114,65 @@
     if (navigator.share) {
       navigator
         .share({
-          title: rip.name,
+          title: rip.rawname,
           url,
         })
         .catch((err) => console.error("Error sharing", err));
     } else {
       navigator.clipboard.writeText(url);
       alert("Link copied to clipboard!");
+    }
+  }
+
+  /* Seeking */
+  let progressBarElem;
+  let overrideProgress: null | number = null;
+  function seekStart(e: MouseEvent | TouchEvent) {
+    if (!player || player.getDuration() === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    overrideProgress = progress;
+    document.addEventListener("mousemove", seekMove);
+    document.addEventListener("touchmove", seekMove);
+    document.addEventListener("mouseup", seekEnd);
+    document.addEventListener("touchend", seekEnd);
+    seekMove(e);
+  }
+
+  function seekMove(e: MouseEvent | TouchEvent) {
+    if (overrideProgress === null) return;
+    e.stopPropagation();
+    let clientX;
+    if ("touches" in e) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+    const rect = progressBarElem.getBoundingClientRect();
+    overrideProgress = Math.min(
+      Math.max(0, (clientX - rect.left) / rect.width),
+      1,
+    );
+  }
+
+  function seekEnd(e: MouseEvent | TouchEvent) {
+    if (overrideProgress === null) return;
+    player.seekTo(player.getDuration() * overrideProgress);
+    setTimeout(() => (overrideProgress = null), 0);
+    document.removeEventListener("mousemove", seekMove);
+    document.removeEventListener("touchmove", seekMove);
+    document.removeEventListener("mouseup", seekEnd);
+    document.removeEventListener("touchend", seekEnd);
+  }
+
+  function formatTime(seconds: number) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    } else {
+      return `${minutes}:${secs.toString().padStart(2, "0")}`;
     }
   }
 
@@ -132,7 +195,7 @@
     }
   }}
   on:click={() => {
-    if (scrollDirection) return;
+    if (scrollDirection || overrideProgress !== null) return;
     if (offset === 0 && player) {
       if (player.getPlayerState() === 1) {
         player.pauseVideo();
@@ -163,7 +226,13 @@
       if (Math.abs(offset) >= 1) player.mute();
     }}
     on:end={() => {
-      if (Math.abs(offset) < 1) player.seekTo(0);
+      if (Math.abs(offset) < 1) {
+        if (autoplay) {
+          dispatch("next");
+        } else {
+          player.seekTo(0);
+        }
+      }
     }}
     on:ready={(e) => {
       player = e.detail.target;
@@ -196,7 +265,14 @@
   <div class="short-actions" on:click={(e) => e.stopPropagation()}>
     <button id="{rip.ytid}-like" on:click={like}>
       {#if $likes.includes(rip.ytid)}
-        <ThumbUp />
+        <div class="like-animation">
+          <LottiePlayer
+            src="./like.json"
+            width="48"
+            height="48"
+            autoplay={true}
+          />
+        </div>
       {:else}
         <ThumbUpOutline />
       {/if}
@@ -219,6 +295,9 @@
       <Share />
     </button>
     <label for="{rip.ytid}-share"> Share </label>
+    <button on:click={() => dispatch("menu")}>
+      <DotsVertical />
+    </button>
   </div>
   <header>
     {#if rip.series}
@@ -279,11 +358,41 @@
       {/key}
     {/if}
   </header>
-  <div class="progress-bar">
+  <div
+    class="progress-bar"
+    class:seeking={overrideProgress !== null}
+    class:disabled={adPlaying || !player}
+    bind:this={progressBarElem}
+    on:mousedown={seekStart}
+    on:touchstart={seekStart}
+    on:mousemove={seekMove}
+    on:touchmove={seekMove}
+    on:mouseup={seekEnd}
+    on:touchend={seekEnd}
+    on:click={(e) => e.stopPropagation()}
+  >
     <div
       class="progress"
-      style="width: {Math.abs(offset) < 1 ? progress * 100 : 0}%"
+      style="width: {Math.abs(offset) < 1
+        ? (overrideProgress ?? progress) * 100
+        : 0}%"
     ></div>
+    {#if overrideProgress !== null}
+      <div class="fromTime">
+        {formatTime(player?.getDuration() * overrideProgress)}
+      </div>
+      <div class="toTime">
+        {formatTime(player?.getDuration() ?? 0)}
+      </div>
+    {/if}
+    {#if !adPlaying || overrideProgress !== null}
+      <div
+        class="handle"
+        style="left: {Math.abs(offset) < 1
+          ? (overrideProgress ?? progress) * 100
+          : 0}%"
+      />
+    {/if}
   </div>
 </div>
 
@@ -313,6 +422,7 @@
     width: calc(100% - 4rem);
     background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
     color: white;
+    transition: opacity 0.2s ease-in-out;
   }
   header .series {
     background-color: transparent;
@@ -359,6 +469,10 @@
     left: 0;
     width: 100%;
     height: 16px;
+    cursor: pointer;
+  }
+  .progress-bar.disabled {
+    pointer-events: none;
   }
   .progress {
     position: absolute;
@@ -366,6 +480,48 @@
     bottom: 0;
     height: 3px;
     background: linear-gradient(to right, #319cb5 0%, #2fa09b 100%);
+    transition: height 0.1s ease-in-out;
+  }
+  .handle {
+    position: absolute;
+    top: 16px;
+    left: 0;
+    width: 0px;
+    height: 0px;
+    background-color: white;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    transition:
+      width 0.1s ease-in-out,
+      height 0.1s ease-in-out,
+      top 0.1s ease-in-out;
+  }
+  .fromTime,
+  .toTime {
+    position: absolute;
+    top: -1.5em;
+    left: 0.5em;
+    font-weight: bold;
+    font-size: 1.5em;
+  }
+  .toTime {
+    left: auto;
+    right: 0.5em;
+  }
+  .progress-bar:hover .progress,
+  .progress-bar.seeking .progress {
+    bottom: 5px;
+    height: 6px;
+  }
+  .progress-bar:hover .handle,
+  .progress-bar.seeking .handle {
+    width: 20px;
+    height: 20px;
+    top: -2px;
+  }
+  .shorts-video-container:has(.progress-bar.seeking) header,
+  .shorts-video-container:has(.progress-bar.seeking) .short-actions {
+    opacity: 0.2;
   }
   .error {
     position: absolute;
@@ -434,10 +590,12 @@
     bottom: 16px;
     display: flex;
     flex-direction: column;
+    justify-content: flex-end;
     width: 3rem;
     margin: 0 0.5rem;
     z-index: 1;
     filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
+    transition: opacity 0.2s ease-in-out;
   }
   .short-actions button {
     width: 3rem;
@@ -467,6 +625,17 @@
     line-height: 1;
     text-align: center;
     margin-bottom: 0.5rem;
+  }
+  .like-animation {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  :global(.like-animation > div) {
+    position: absolute !important;
+    bottom: 0;
+    right: 0;
   }
   @media screen and (max-width: 700px) {
     :global(

@@ -16,8 +16,23 @@ function dateOffset(time: number) {
   return time + new Date(2016, 0, 1).getTime();
 }
 
+// https://stackoverflow.com/questions/47285198/fetch-api-download-progress-indicator/72903731#72903731
+async function* streamToAsyncIterable(stream) {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      yield value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export default class RipBrowser {
   rips: Rip[] = [];
+  ripMap: Map<string, Rip> = new Map();
   textDecoder = new TextDecoder("utf-8");
   playlists: { [key: string]: string[] } = {};
   createdAt: number;
@@ -42,6 +57,10 @@ export default class RipBrowser {
 
   private toString(arrayBuffer: ArrayBuffer) {
     return this.textDecoder.decode(arrayBuffer);
+  }
+
+  get(ytid: string) {
+    return this.ripMap.get(ytid);
   }
 
   async fetchPlaylist(playlistId: string) {
@@ -88,7 +107,7 @@ export default class RipBrowser {
   playlist(playlist: Playlist) {
     const results: Rip[] = [];
     for (let ytid of playlist.videos) {
-      const rip = this.rips.find((rip) => rip.ytid === ytid);
+      const rip = this.get(ytid);
       if (rip) {
         results.push(rip);
       }
@@ -184,9 +203,30 @@ export default class RipBrowser {
     return results.sort((a, b) => (a.series || "").localeCompare(b.series));
   }
 
-  async load() {
-    let response = await fetch("./db/db.siivadb.zst", { method: "GET" });
-    let arrayBuffer = await response.arrayBuffer();
+  async fetchWithProgress(progress: (progress: number) => void) {
+    const res = await fetch("./db/db.siivadb.zst", { method: "GET" });
+    let responseSize = 0; // `responseSize` is response-size! Not necessarily download-size ('content-length')! See the above link.
+    const chunks = [];
+
+    for await (const chunk of streamToAsyncIterable(res.body)) {
+      responseSize += chunk.length;
+      progress(
+        responseSize / (parseInt(res.headers.get("Content-Length")) || 1),
+      );
+      chunks.push(chunk);
+    }
+
+    const bytes = new Uint8Array(responseSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset); // `chunk` is a `Uint8Array`
+      offset += chunk.length;
+    }
+    return bytes.buffer;
+  }
+
+  async load(progress: (progress: number) => void = () => {}) {
+    let arrayBuffer = await this.fetchWithProgress(progress);
 
     let decoder = new ZSTDDecoder();
     await decoder.init();
@@ -242,6 +282,11 @@ export default class RipBrowser {
       });
 
       pos += 19;
+    }
+
+    // create rip map
+    for (let rip of this.rips) {
+      this.ripMap.set(rip.ytid, rip);
     }
   }
 }

@@ -62,7 +62,7 @@
     }
     if (window.location.search.includes("v=")) {
       let list = window.location.search.split("v=")[1].split("&")[0];
-      $currentRip = browser.rips.find((r) => r.ytid === list) || null;
+      $currentRip = browser.get(list) || null;
       let ripIndex = $currentResults.findIndex(
         (r) => r.ytid === $currentRip.ytid,
       );
@@ -191,6 +191,20 @@
           {#if !playlist?.default}
             <button class="danger" on:click={deletePlaylist}>
               <Delete />
+            </button>
+          {/if}
+          {#if $currentResults.length > 0}
+            <button
+              title="Open search in SiIvaShorts"
+              class="siivashorts-btn"
+              on:click={() => dispatch("shorts", $currentResults)}
+            >
+              <TowerFilled />
+              <img
+                src="https://i.ytimg.com/vi/{$currentResults[0]
+                  .ytid}/default.jpg"
+                alt="SiIvaShorts"
+              />
             </button>
           {/if}
         {:else if $currentResults !== browser.rips}
