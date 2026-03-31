@@ -30,6 +30,7 @@
           html += "<tr>";
         } else if (line.startsWith("|") && !line.startsWith("|+")) {
           if (line.includes("span")) {
+            line = line.replace(/\|\|/gm, "</td><td>");
             line = line.replace(
               /\|[^\|]*?(\w+)[ ]*=[ "]*(\d+)[ "]*[^\|]*\|/gm,
               '|<td $1="$2">',
@@ -52,18 +53,26 @@
   }
 
   function parse(joke: string) {
+    console.log(joke);
     joke = joke
       .replace(/<!--.+?-->/gm, "")
+      .replace(/\<[/ ]*?nowiki[ /]*?>/gm, "")
       .replaceAll("<", "&lt;")
       .replace(/^\*(.+?)$/gm, "<li>$1</li>")
       // surround lis with ul
       .replace(/(<li>.+<\/li>)/gms, "<ul>$1</ul>");
     joke = replaceWikitables(joke);
+
+    // remove nested quotes
+    while (joke.match(/""([^"]+?)"([^"]+?)"/gm)) {
+      joke = joke.replace(/""([^"]+?)"([^"]+?)"/gm, `"'$1'$2"`);
+    }
+
     return joke
       .replace(/\n\n/gm, "\n")
       .trim()
       .replace(
-        /"([^"]+\|)?([^">]+?)"([^\>])/gm,
+        /"([^"]+?\|)?([^">]+?)"([^\>])/gm,
         '<span class="link">$2</span>$3',
       )
       .replace(
@@ -133,7 +142,9 @@
   class:hidden={!$options.showJokes}
 >
   <div class="joke-inner">
-    {@html jokeHTML}
+    <span>
+      {@html jokeHTML}
+    </span>
   </div>
 </div>
 

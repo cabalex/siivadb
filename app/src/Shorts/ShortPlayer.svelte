@@ -23,6 +23,7 @@
 
   let oldPosition = position;
   let oldOffset = offset;
+  let oldRip = rip;
 
   let player = null;
   let error: null | number = null;
@@ -42,6 +43,7 @@
     scrollDirection = position > oldPosition ? "down" : "up";
     oldPosition = position;
     oldOffset = offset;
+    descriptionExpanded = false;
 
     setTimeout(() => {
       scrollDirection = null;
@@ -177,6 +179,44 @@
   }
 
   let paused = false;
+  let descriptionExpanded = false;
+  let descriptionExpandable = false;
+  let descriptionElem;
+
+  $: {
+    if (rip !== oldRip) {
+      error = null;
+      descriptionExpanded = false;
+      setTimeout(() => {
+        descriptionExpandable = isDescriptionExpandable();
+      }, 0);
+    }
+    oldRip = rip;
+  }
+
+  const isDescriptionExpandable = () => {
+    if (!descriptionElem) return false;
+    if (descriptionExpanded) return true;
+
+    return (
+      Math.round(
+        descriptionElem.children[0]?.children[0]?.children[0]?.getBoundingClientRect()
+          .height ?? 0,
+      ) >= 124
+    );
+  };
+
+  function toggleDescription(e: MouseEvent) {
+    if (!$options.showJokes || !isDescriptionExpandable()) {
+      descriptionExpanded = false;
+      return;
+    }
+    e.stopPropagation();
+    descriptionExpanded = !descriptionExpanded;
+    if (!descriptionExpanded) {
+      descriptionElem.scrollTop = 0;
+    }
+  }
 </script>
 
 <div
@@ -299,7 +339,21 @@
       <DotsVertical />
     </button>
   </div>
-  <header>
+  <header
+    class:expanded={descriptionExpanded}
+    class:expandable={descriptionExpandable}
+    on:click={(e) => {
+      toggleDescription(e);
+    }}
+    on:keydown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        toggleDescription(e);
+      }
+    }}
+    role="button"
+    tabindex="0"
+    aria-expanded={descriptionExpanded}
+  >
     {#if rip.series}
       <button
         class="series"
@@ -328,26 +382,20 @@
       {#key rip.ytid}
         <div
           class="description-container"
+          bind:this={descriptionElem}
           on:touchstart={(e) => {
             const target = e.currentTarget;
-            if (
-              target.clientHeight !== target.scrollHeight &&
-              target.clientHeight + target.scrollTop !== target.scrollHeight
-            ) {
+            if (target.clientHeight !== target.scrollHeight) {
               e.stopPropagation();
             }
           }}
           on:touchmove={(e) => {
             const target = e.currentTarget;
-            if (
-              target.clientHeight !== target.scrollHeight &&
-              target.clientHeight + target.scrollTop !== target.scrollHeight
-            ) {
+            if (target.clientHeight !== target.scrollHeight) {
               e.stopPropagation();
             }
           }}
           on:wheel={(e) => e.stopPropagation()}
-          on:click={(e) => e.stopPropagation()}
         >
           <Joke
             {player}
@@ -418,11 +466,23 @@
     height: fit-content;
     bottom: 0;
     padding-right: 4rem;
-    padding-bottom: 1rem;
-    width: calc(100% - 4rem);
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    width: 100%;
+    box-sizing: border-box;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.8) 50%
+    );
+    background-size: 100% 200%;
+    background-repeat: no-repeat;
     color: white;
-    transition: opacity 0.2s ease-in-out;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      opacity 0.2s ease-in-out,
+      background-position 0.3s ease-in-out;
+  }
+  header:not(:has(.description-container)) {
+    padding-bottom: 1rem;
   }
   header .series {
     background-color: transparent;
@@ -456,12 +516,54 @@
     padding: 0 10px;
     line-height: 1.25;
   }
-  .description-container {
+  header .description-container {
     max-height: 15vh;
     margin: 5px 0 0 0;
     font-size: 0.9em;
     color: #ccc;
     overflow: auto;
+    transition:
+      max-height 0.2s ease-in-out,
+      background-color 0.2s ease-in-out;
+    overflow: hidden;
+    border-radius: 0 0.5rem 0 0;
+  }
+  header.expandable .description-container {
+    pointer-events: none;
+  }
+  :global(header .description-container .joke) {
+    padding-bottom: 1rem;
+  }
+  :global(header:not(.expanded) .description-container .joke-inner) {
+    display: -webkit-box;
+    line-clamp: 5;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: #319cb5;
+    font-weight: bolder;
+  }
+  :global(header:not(.expanded) .description-container .joke-inner > span) {
+    color: #ccc;
+    font-weight: normal;
+  }
+  header.expandable {
+    cursor: pointer;
+  }
+  .shorts-video-container:has(header.expanded) .short-actions {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+  header.expanded {
+    background-position-y: 100%;
+    padding-top: 1rem;
+    padding-right: 0;
+    z-index: 11;
+  }
+  header.expanded .description-container {
+    pointer-events: all;
+    overflow: auto;
+    max-height: calc(100vh - 228px);
   }
   .progress-bar {
     position: absolute;
@@ -469,6 +571,7 @@
     left: 0;
     width: 100%;
     height: 16px;
+    z-index: 12;
     cursor: pointer;
   }
   .progress-bar.disabled {

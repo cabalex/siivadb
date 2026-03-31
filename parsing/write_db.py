@@ -97,6 +97,8 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
             if "[[Category:" in joke:
                 # Split before the Categories section
                 joke = joke.split("[[Category:")[0].strip()
+            elif "[[category:" in joke:
+                joke = joke.split("[[category:")[0].strip()
 
             joke = wikicomments.sub("", joke)
             joke = collapsedWikitables.sub("[View this table on the Wiki.]", joke)
@@ -109,7 +111,7 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
             
             return joke
 
-        return "This rip doesn't appear to have traditional \"jokes\". It must be VERY high quality..."
+        return "This rip doesn't have any jokes in it."
 
     async def fetchJoke(self, browser: zd.Browser, name: str):
         try:

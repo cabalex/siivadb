@@ -10,22 +10,23 @@ dump_file = open("siivagunner.fandom.com-20250515-history.xml", "r", encoding="u
 indices = {}
 
 print("Reading and indexing dump file (this may take a while...)")
+lastname = ""
 while True:
   line = dump_file.readline()
   if not line:
     break
   if line.startswith("    <title>"):
     name = line.strip()[7:-8]
-    if name in db.nameTable:
-      indices[name] = dump_file.tell()
+    lastname = name
+    indices[name] = dump_file.tell()
+  elif line.startswith("    <redirect"):
+    newname = line.split('title="', 1)[1].split('"', 1)[0]
+    indices[newname] = indices[lastname]
 
 print(f"Found {len(indices)} jokes in the dump file.")
 
-redone = 0
-for i in range(len(db.nameTable)):
-  name = db.nameTable[i]
+def getArticleText(name):
   if name in indices:
-    redone += 1
     dump_file.seek(indices[name])
     joke = ""
     jokeOpen = False
@@ -48,8 +49,29 @@ for i in range(len(db.nameTable)):
       elif jokeOpen:
         joke += line
     
+    return html.unescape(joke.replace("\r", ""))
+  
+  return None
+
+redone = 0
+for i in range(len(db.nameTable)):
+  name = db.nameTable[i]
+  if name in indices:
+    redone += 1
+    joke = getArticleText(name)
+
+    if joke is None:
+      continue
+    elif joke.startswith("#REDIRECT "):
+      redirectTarget = joke.split("[[", 1)[1].split("]]", 1)[0]
+      print(f"{name} is a redirect to {redirectTarget}... fetching joke for that instead.")
+      joke = getArticleText(redirectTarget)
+      if joke is None:
+        print(f"Couldn't find joke for redirect target {redirectTarget}... skipping.")
+        continue
+    
     try:
-      db.jokeTable[i] = db.parseJokeText(html.unescape(joke.replace("\r", "")))
+      db.jokeTable[i] = db.parseJokeText(joke)
       if len(db.jokeTable[i].encode("utf-8")) > 65535:
         print(f"Joke for {name} is too long ({len(db.jokeTable[i])})... truncating.")
         with open(f"truncated_{i}.txt", "w", encoding="utf-8") as truncated_file:

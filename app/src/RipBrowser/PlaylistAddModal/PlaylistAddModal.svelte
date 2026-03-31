@@ -1,16 +1,16 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import Rip from "../Rip.svelte";
   import Plus from "svelte-material-icons/Plus.svelte";
   import MusicNote from "svelte-material-icons/MusicNote.svelte";
   import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
   import { type Playlist, playlists, likes } from "../../stores";
+  import RipBrowser from "../RipBrowser";
 
-  export let video: Rip;
+  export let video: RipBrowser["rips"][number];
 
   const dispatch = createEventDispatcher();
 
-  function add(video: Rip, playlist: Playlist) {
+  function add(video: RipBrowser["rips"][number], playlist: Playlist) {
     if (playlist.videos.find((v) => v === video.ytid)) {
       playlist.videos = playlist.videos.filter((v) => v !== video.ytid);
       $playlists = $playlists;
@@ -21,7 +21,7 @@
     }
   }
 
-  function addLike(video: Rip) {
+  function addLike(video: RipBrowser["rips"][number]) {
     if ($likes.find((v) => v === video.ytid)) {
       $likes = $likes.filter((v) => v !== video.ytid);
     } else {

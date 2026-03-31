@@ -11,9 +11,15 @@
 
   let loaded = false;
   let loadProgress = 0;
-  let selectedPlaylist = window.location.hash.includes("shorts")
-    ? "shorts"
-    : null;
+  let selectedPlaylist:
+    | "shorts"
+    | {
+        name: string;
+        createdAt: number;
+        default?: boolean;
+        videos: any[];
+      }
+    | null = window.location.hash.includes("shorts") ? "shorts" : null;
   let updateScroll;
   let stack = [];
 
@@ -40,6 +46,12 @@
       return o;
     });
   }
+
+  $: isLikesSelected =
+    selectedPlaylist &&
+    typeof selectedPlaylist === "object" &&
+    selectedPlaylist?.name === "Liked Rips" &&
+    selectedPlaylist?.default;
 </script>
 
 <div class="content">
@@ -62,7 +74,13 @@
     <button
       class="tab siivashorts-tab"
       class:active={selectedPlaylist === "shorts"}
-      on:click={() => (selectedPlaylist = "shorts")}
+      on:click={() => {
+        // If selected already and stack has items, pop one from the stack
+        if (selectedPlaylist === "shorts" && stack.length > 1) {
+          stack = stack.slice(0, -1);
+        }
+        selectedPlaylist = "shorts";
+      }}
     >
       {#if selectedPlaylist === "shorts"}
         <TowerFilled />
@@ -73,10 +91,16 @@
     </button>
     <button
       class="tab"
-      class:active={selectedPlaylist === "likes"}
-      on:click={() => (selectedPlaylist = "likes")}
+      class:active={isLikesSelected}
+      on:click={() =>
+        (selectedPlaylist = {
+          name: "Liked Rips",
+          createdAt: 0,
+          default: true,
+          videos: $likes,
+        })}
     >
-      {#if selectedPlaylist === "likes"}
+      {#if isLikesSelected}
         <ThumbUp />
       {:else}
         <ThumbUpOutline />
@@ -115,28 +139,6 @@
     {#if loaded}
       {#if selectedPlaylist === "shorts"}
         <Shorts bind:stack browser={$browser} />
-      {:else if selectedPlaylist === "likes"}
-        <RipBrowser
-          bind:updateScroll
-          browser={$browser}
-          on:shorts={(e) => {
-            stack = [
-              ...stack,
-              {
-                lookahead: e.detail,
-                position: 0,
-                fetchMore: false,
-              },
-            ];
-            selectedPlaylist = "shorts";
-          }}
-          playlist={{
-            name: "Liked Shorts",
-            createdAt: 0,
-            default: true,
-            videos: $likes,
-          }}
-        />
       {:else}
         <RipBrowser
           bind:updateScroll
@@ -148,6 +150,10 @@
               {
                 lookahead: e.detail,
                 position: 0,
+                name:
+                  selectedPlaylist === null
+                    ? "Search Results"
+                    : selectedPlaylist.name,
                 fetchMore: false,
               },
             ];

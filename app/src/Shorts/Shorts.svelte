@@ -8,12 +8,14 @@
   import nice from "../assets/nice.svg";
   import getShort, { getForYou, scrollPast } from "./ForYou";
   import { fly } from "svelte/transition";
+  import PlaylistAddModal from "../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
 
   export let browser: RipBrowser;
 
   interface StackItem {
     lookahead: Array<RipBrowser["rips"][number] & { reason?: string }>;
     position: number;
+    name?: string;
     fetchMore: boolean;
   }
 
@@ -110,6 +112,7 @@
       ...stack,
       {
         lookahead: rips,
+        name,
         position: 0,
         fetchMore: false,
       },
@@ -179,6 +182,7 @@
   }
 
   /* Menu options */
+  let playlistModalOpen = false;
   let autoplay = false;
   function shuffleCurrent() {
     const position = current.position;
@@ -203,11 +207,40 @@
       location.reload();
     }
   }
+
+  /* Stack manipulation events */
+  let animation = null;
+  function onStackPop() {
+    animation = "pop";
+    setTimeout(() => {
+      animation = null;
+    }, 300);
+  }
+
+  function onStackPush() {
+    animation = "push";
+    setTimeout(() => {
+      animation = null;
+    }, 300);
+  }
+  let oldStack = stack;
+  $: {
+    if (oldStack.length >= 1) {
+      if (stack.length < oldStack.length) {
+        onStackPop();
+      } else if (stack.length > oldStack.length) {
+        onStackPush();
+      }
+    }
+    oldStack = stack;
+  }
 </script>
 
 <main>
   <div
     class="videos-list"
+    class:push={animation === "push"}
+    class:pop={animation === "pop"}
     on:touchstart={touchStart}
     on:touchmove={touchMove}
     on:touchend={touchEnd}
@@ -232,14 +265,22 @@
       {/if}
     {/each}
     {#if stack.length > 1}
-      <button
-        class="short-btn back-btn"
-        on:click={() => {
-          stack = stack.slice(0, -1);
-        }}
-      >
-        <ArrowLeft />
-      </button>
+      {#if current.name}
+        <div class="playlist-name">
+          <button
+            class="short-btn back-btn"
+            on:click={() => {
+              stack = stack.slice(0, -1);
+            }}
+          >
+            <ArrowLeft />
+          </button>
+          <div class="text">
+            <div>watching rips from</div>
+            <b>{current.name}</b>
+          </div>
+        </div>
+      {/if}
     {/if}
     {#if showLikeNotification}
       <div
@@ -276,6 +317,9 @@
             .map((t) => `${t.term} (${Math.round(t.weight)})`)
             .join(", ") || "None"}
         </p>
+        <button class="menu-item danger" on:click={resetWatchHistory}>
+          Reset watch history
+        </button>
         {#if !current.fetchMore}
           <button
             class="menu-item"
@@ -290,6 +334,14 @@
         <button
           class="menu-item"
           on:click={() => {
+            playlistModalOpen = true;
+          }}
+        >
+          Add rip to playlist
+        </button>
+        <button
+          class="menu-item"
+          on:click={() => {
             autoplay = !autoplay;
             menuOpen = false;
           }}
@@ -300,9 +352,6 @@
           {:else}
             (off)
           {/if}
-        </button>
-        <button class="menu-item danger" on:click={resetWatchHistory}>
-          Reset watch history
         </button>
         <button class="menu-item" on:click={() => (menuOpen = false)}>
           Close
@@ -328,6 +377,11 @@
   </div>
 </main>
 
+{#if playlistModalOpen}
+  {@const rip = { ...current.lookahead[current.position], reason: undefined }}
+  <PlaylistAddModal video={rip} on:close={() => (playlistModalOpen = false)} />
+{/if}
+
 <style>
   main {
     width: 100%;
@@ -352,16 +406,69 @@
     height: 100%;
     overflow: hidden;
   }
+  .videos-list.push,
+  .videos-list.pop {
+    background-color: #000;
+  }
+  :global(.videos-list.push > .shorts-video-container) {
+    animation: push 0.1s ease-in-out;
+    animation-delay: 0.2s;
+    animation-fill-mode: backwards;
+  }
+  :global(.videos-list.pop > .shorts-video-container) {
+    animation: pop 0.1s ease-in-out;
+    animation-delay: 0.2s;
+    animation-fill-mode: backwards;
+  }
+  @keyframes push {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes pop {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
   .short-btn {
     width: 3rem;
     height: 3rem;
     border-radius: 1.5rem;
   }
-  .back-btn {
+  .playlist-name {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    top: 0;
+    left: 0;
+    padding: 10px;
     z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(to bottom, #000 0%, transparent 100%);
+  }
+  .playlist-name .text {
+    width: 100%;
+    padding-right: 58px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .playlist-name .text div {
+    font-size: 0.8em;
+  }
+  .playlist-name .text b {
+    font-size: 1.2em;
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
   .like-notification {
     position: absolute;
