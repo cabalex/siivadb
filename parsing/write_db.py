@@ -124,6 +124,11 @@ Object.defineProperty(MouseEvent.prototype, 'screenY', { value: screenY });
 
             wikitext = js["parse"]["wikitext"]["*"]
 
+            if wikitext.startswith("#REDIRECT"):
+                redirectTarget = wikitext.split("#REDIRECT")[1].strip().strip("[]")
+                print(f"{name} is a redirect to {redirectTarget}, fetching joke for that rip instead...")
+                return await self.fetchJoke(browser, redirectTarget)
+
             return self.parseJokeText(wikitext)
         except Exception as e:
             print(f"Failed to fetch joke for {name}: {e}")
