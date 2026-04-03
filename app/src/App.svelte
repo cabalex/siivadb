@@ -49,7 +49,10 @@
     });
   }
 
-  function addPlaylistToShortsStack(lookahead: any[]) {
+  function addPlaylistToShortsStack(
+    lookahead: any[],
+    name: string = "Search Results",
+  ) {
     if (stack.length === 0) {
       setTimeout(() => {
         stack = [
@@ -57,7 +60,7 @@
           {
             lookahead,
             position: 0,
-            name: selectedPlaylist?.name ?? "Search Results",
+            name: name,
             fetchMore: false,
           },
         ];
@@ -68,10 +71,7 @@
         {
           lookahead,
           position: 0,
-          name:
-            selectedPlaylist === null
-              ? "Search Results"
-              : (selectedPlaylist.name ?? "Search Results"),
+          name: name,
           fetchMore: false,
         },
       ];
@@ -193,8 +193,12 @@
           browser={$browser}
           bind:playlist={selectedPlaylist}
           on:shorts={(e) => {
+            const name =
+              selectedPlaylist === null || typeof selectedPlaylist === "string"
+                ? "Search Results"
+                : selectedPlaylist?.name;
             selectedPlaylist = "shorts";
-            addPlaylistToShortsStack(e.detail);
+            addPlaylistToShortsStack(e.detail, name);
           }}
         />
       {/if}

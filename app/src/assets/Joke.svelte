@@ -140,6 +140,9 @@
   class="joke"
   bind:this={elem}
   class:active={rip === $currentRip}
+  class:nojoke={rip.description ===
+    "We don't have this rip in our database... yet. Contribute to the Wiki to add it!" ||
+    rip.description === "This rip doesn't have any jokes in it."}
   class:hidden={!$options.showJokes}
 >
   <div class="joke-inner">
@@ -164,6 +167,10 @@
 
     background-color: transparent;
     transition: background-color 0.2s ease-in-out;
+  }
+  .joke.nojoke {
+    opacity: 0.7;
+    font-style: italic;
   }
   .joke.hidden {
     filter: blur(10px);
