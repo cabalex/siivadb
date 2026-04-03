@@ -16,19 +16,19 @@ const pwaOptions: Partial<VitePWAOptions> = {
     background_color: "#000000",
     icons: [
       {
-        src: "icons/512.png",
+        src: "./icons/512.png",
         type: "images/png",
         purpose: "any maskable",
         sizes: "512x512",
       },
       {
-        src: "icons/192.png",
-        type: "image/svg",
+        src: "./icons/192.png",
+        type: "image/png",
         purpose: "any maskable",
         sizes: "192x192",
       },
       {
-        src: "icons/92.png",
+        src: "./icons/92.png",
         type: "image/png",
         sizes: "92x92",
       },

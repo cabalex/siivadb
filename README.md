@@ -20,8 +20,9 @@ SiIvaShorts's algorithm is loosely based off of [Xikipedia](https://github.com/r
 
 - Liking a post: +50
 - Time before skipping: -5 to +3, for between 1s to 20s (no change if watched <1s)
+  - Note that when viewing a playlist based on a blue keyword, that keyword isn't affected by this metric (but is still affected by likes).
 
-Rips given a weight by averaging the score of all of its tags, to prevent mashups with hundreds of tags from dominating the recommendations.
+Rips given a weight by multiplying all tag scores by 10 and averaging them, to prevent mashups with hundreds of tags from dominating the recommendations.
 
 Posts are recommended in three ways:
 
