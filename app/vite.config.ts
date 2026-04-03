@@ -3,7 +3,7 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { VitePWA, VitePWAOptions } from "vite-plugin-pwa";
 
 const pwaOptions: Partial<VitePWAOptions> = {
-  base: "",
+  base: "./",
   registerType: "autoUpdate",
   includeAssets: ["like.json", "tower.svg", "db/db.siivadb.zst", "icons/*.png"],
   manifest: {
