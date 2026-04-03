@@ -6,9 +6,10 @@
   import ChevronDown from "svelte-material-icons/ChevronDown.svelte";
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
   import nice from "../assets/nice.svg";
-  import getShort, { getForYou, scrollPast } from "./ForYou";
+  import getShort, { getFeedInfo, scrollPast } from "./ForYou";
   import { fly } from "svelte/transition";
   import PlaylistAddModal from "../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
+  import { onMount } from "svelte";
 
   export let browser: RipBrowser;
 
@@ -19,26 +20,25 @@
     fetchMore: boolean;
   }
 
-  export let stack: StackItem[] = [
-    {
-      lookahead: [getNextShort(), getNextShort(), getNextShort()],
-      position: 0,
-      fetchMore: true,
-    },
-  ];
-  $: {
+  export let stack: StackItem[] = [];
+  onMount(() => {
     if (stack.length === 0) {
-      stack = [
-        {
-          lookahead: [getNextShort(), getNextShort(), getNextShort()],
-          position: 0,
-          fetchMore: true,
+      Promise.all([getNextShort(), getNextShort(), getNextShort()]).then(
+        ([a, b, c]) => {
+          stack = [
+            {
+              lookahead: [a, b, c],
+              position: 0,
+              fetchMore: true,
+            },
+            ...stack,
+          ];
         },
-      ];
+      );
     }
-  }
+  });
 
-  $: current = stack[stack.length - 1];
+  $: current = stack[stack.length - 1] ?? null;
 
   function getNextShort() {
     return getShort(browser);
@@ -48,16 +48,16 @@
   let lastScroll = Date.now();
   function next() {
     if (current.fetchMore && current.position >= current.lookahead.length - 2) {
-      current.lookahead = [...current.lookahead, getNextShort()];
+      getNextShort().then((short) => {
+        current.lookahead = [...current.lookahead, short];
+      });
     }
     if (current.position < current.lookahead.length - 1) {
-      if (
-        current.fetchMore &&
-        !$likes.includes(current.lookahead[current.position].ytid)
-      ) {
+      if (!$likes.includes(current.lookahead[current.position].ytid)) {
         scrollPast(
           current.lookahead[current.position].ytid,
           Date.now() - lastScroll,
+          current.name,
         );
       }
       current.position += 1;
@@ -91,7 +91,7 @@
       showLikeNotification = true;
       setTimeout(() => {
         showLikeNotification = false;
-      }, 5000);
+      }, 7500);
     }
   }
 
@@ -106,6 +106,10 @@
       rips = browser.rips.filter((rip) =>
         rip.description.toLowerCase().includes(query),
       );
+    }
+    const exactMatch = rips.find((rip) => rip.name === name);
+    if (exactMatch) {
+      rips.unshift(exactMatch);
     }
     if (rips.length === 0) return;
     stack = [
@@ -236,36 +240,36 @@
   }
 </script>
 
-<main>
-  <div
-    class="videos-list"
-    class:push={animation === "push"}
-    class:pop={animation === "pop"}
-    on:touchstart={touchStart}
-    on:touchmove={touchMove}
-    on:touchend={touchEnd}
-  >
-    {#each new Array(3) as _, i}
-      {#if current.lookahead[getRipIndex(current.position, i)]}
-        <ShortPlayer
-          rip={current.lookahead[getRipIndex(current.position, i)]}
-          position={current.position}
-          swiping={touchStartY !== null}
-          offset={getRipIndex(current.position, i) -
-            current.position +
-            touchDelta}
-          {autoplay}
-          on:prev={() => prev()}
-          on:next={() => next()}
-          on:like={() => like()}
-          on:fetchRips={(e) => fetchRips(e.detail, "series")}
-          on:fetchJokes={(e) => fetchRips(e.detail, "jokes")}
-          on:menu={() => (menuOpen = true)}
-        />
-      {/if}
-    {/each}
-    {#if stack.length > 1}
-      {#if current.name}
+{#if current !== null}
+  <main>
+    <div
+      class="videos-list"
+      class:push={animation === "push"}
+      class:pop={animation === "pop"}
+      on:touchstart={touchStart}
+      on:touchmove={touchMove}
+      on:touchend={touchEnd}
+    >
+      {#each new Array(3) as _, i}
+        {#if current.lookahead[getRipIndex(current.position, i)]}
+          <ShortPlayer
+            rip={current.lookahead[getRipIndex(current.position, i)]}
+            position={current.position}
+            swiping={touchStartY !== null}
+            offset={getRipIndex(current.position, i) -
+              current.position +
+              touchDelta}
+            {autoplay}
+            on:prev={() => prev()}
+            on:next={() => next()}
+            on:like={() => like()}
+            on:fetchRips={(e) => fetchRips(e.detail, "series")}
+            on:fetchJokes={(e) => fetchRips(e.detail, "jokes")}
+            on:menu={() => (menuOpen = true)}
+          />
+        {/if}
+      {/each}
+      {#if stack.length > 1}
         <div class="playlist-name">
           <button
             class="short-btn back-btn"
@@ -276,113 +280,162 @@
             <ArrowLeft />
           </button>
           <div class="text">
-            <div>watching rips from</div>
-            <b>{current.name}</b>
+            {#if current.name}
+              <div>watching rips from</div>
+              <b>{current.name}</b>
+            {/if}
           </div>
         </div>
       {/if}
-    {/if}
-    {#if showLikeNotification}
-      <div
-        class="like-notification"
-        transition:fly={{ y: -100, duration: 300 }}
-      >
-        <img src={nice} alt="nice >:]" />
-        <div class="text">
-          <h3>nice &gt;:]</h3>
-          <p>
-            Your likes affect what you're recommended next. Keep liking rips to
-            improve your feed!
-          </p>
+      {#if showLikeNotification}
+        <div
+          class="like-notification"
+          transition:fly={{ y: -100, duration: 300 }}
+        >
+          <img src={nice} alt="nice >:]" />
+          <div class="text">
+            <h3>nice &gt;:]</h3>
+            <p>
+              Your likes affect what you're recommended next. Keep liking rips
+              to improve your feed!
+            </p>
+          </div>
         </div>
-      </div>
-    {/if}
-    {#if menuOpen}
-      {@const forYou = getForYou(browser)}
-      <div class="menu" transition:fly={{ y: 50, duration: 200 }}>
-        <p>
-          <b>Why this rip?</b>
-          {current.lookahead[current.position]?.reason ??
-            "It's next in the playlist"}
-        </p>
-        <p>
-          Watched {forYou.seen.size}/{browser.rips.length} rips ({(
-            (forYou?.seen.size || 0) / browser.rips.length
-          ).toFixed(3)}%)
-        </p>
-        <p>
-          Interests:{" "}
-          {forYou
-            ?.topTerms()
-            .map((t) => `${t.term} (${Math.round(t.weight)})`)
-            .join(", ") || "None"}
-        </p>
-        <button class="menu-item danger" on:click={resetWatchHistory}>
-          Reset watch history
-        </button>
-        {#if !current.fetchMore}
+      {/if}
+      {#if menuOpen}
+        <div class="menu" transition:fly={{ y: 50, duration: 200 }}>
+          {#await getFeedInfo() then feedInfo}
+            <p>
+              <b>Why this rip?</b>
+              {current.lookahead[current.position]?.reason ??
+                "It's next in the playlist"}
+            </p>
+            <p>
+              Watched {feedInfo.seen}/{browser.rips.length} rips ({(
+                ((feedInfo.seen || 0) / browser.rips.length) *
+                100
+              ).toFixed(2)}%)
+            </p>
+            <p>
+              Interests:{" "}
+              {feedInfo.topTerms
+                .map((t) => `${t.term} (${Math.round(t.weight)})`)
+                .join(", ") || "None"}
+            </p>
+          {/await}
+          <button class="menu-item danger" on:click={resetWatchHistory}>
+            Reset watch history
+          </button>
+          {#if !current.fetchMore}
+            <button
+              class="menu-item"
+              on:click={() => {
+                shuffleCurrent();
+                menuOpen = false;
+              }}
+            >
+              Shuffle playlist
+            </button>
+          {/if}
           <button
             class="menu-item"
             on:click={() => {
-              shuffleCurrent();
+              playlistModalOpen = true;
+            }}
+          >
+            Add rip to playlist
+          </button>
+          <button
+            class="menu-item"
+            on:click={() => {
+              autoplay = !autoplay;
               menuOpen = false;
             }}
           >
-            Shuffle playlist
+            Autoplay next rip
+            {#if autoplay}
+              (on)
+            {:else}
+              (off)
+            {/if}
           </button>
-        {/if}
-        <button
-          class="menu-item"
-          on:click={() => {
-            playlistModalOpen = true;
-          }}
-        >
-          Add rip to playlist
-        </button>
-        <button
-          class="menu-item"
-          on:click={() => {
-            autoplay = !autoplay;
-            menuOpen = false;
-          }}
-        >
-          Autoplay next rip
-          {#if autoplay}
-            (on)
-          {:else}
-            (off)
-          {/if}
-        </button>
-        <button class="menu-item" on:click={() => (menuOpen = false)}>
-          Close
-        </button>
-      </div>
-    {/if}
-  </div>
-  <div class="desktop-actions">
-    <button
-      class="short-btn"
-      on:click={() => prev()}
-      disabled={current.position === 0}
-    >
-      <ChevronUp />
-    </button>
-    <button
-      class="short-btn"
-      on:click={() => next()}
-      disabled={current.position === current.lookahead.length - 1}
-    >
-      <ChevronDown />
-    </button>
-  </div>
-</main>
+          <button class="menu-item" on:click={() => (menuOpen = false)}>
+            Close
+          </button>
+        </div>
+      {/if}
+    </div>
+    <div class="desktop-actions">
+      <button
+        class="short-btn"
+        on:click={() => prev()}
+        disabled={current.position === 0}
+      >
+        <ChevronUp />
+      </button>
+      <button
+        class="short-btn"
+        on:click={() => next()}
+        disabled={current.position === current.lookahead.length - 1}
+      >
+        <ChevronDown />
+      </button>
+    </div>
+  </main>
 
-{#if playlistModalOpen}
-  {@const rip = { ...current.lookahead[current.position], reason: undefined }}
-  <PlaylistAddModal video={rip} on:close={() => (playlistModalOpen = false)} />
+  {#if playlistModalOpen}
+    {@const rip = { ...current.lookahead[current.position], reason: undefined }}
+    <PlaylistAddModal
+      video={rip}
+      on:close={() => (playlistModalOpen = false)}
+    />
+  {/if}
+{:else}
+  <div class="loading">
+    <h2>Setting up your feed...</h2>
+    <div class="progress-bar">
+      <div class="progress" style="width: 100%"></div>
+    </div>
+  </div>
 {/if}
 
 <style>
+  .loading {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .progress-bar {
+    width: 80%;
+    height: 8px;
+    background-color: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0 auto;
+    margin-top: 8px;
+  }
+  .progress {
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      #319cb5 0%,
+      #5fcec9 50%,
+      #319cb5 100%
+    );
+    animation: backgroundMove 2s linear infinite;
+    background-size: 200% 100%;
+  }
+  @keyframes backgroundMove {
+    from {
+      background-position: 0% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
   main {
     width: 100%;
     max-width: 800px;

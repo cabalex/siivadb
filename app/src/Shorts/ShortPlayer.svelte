@@ -71,6 +71,9 @@
 
   onMount(() => {
     const callback = requestAnimationFrame(updateProgress);
+    setTimeout(() => {
+      descriptionExpandable = isDescriptionExpandable();
+    });
     return () => cancelAnimationFrame(callback);
   });
 
@@ -180,6 +183,7 @@
 
   let paused = false;
   let descriptionExpanded = false;
+  let expandedDescriptionHeight = 0;
   let descriptionExpandable = false;
   let descriptionElem;
 
@@ -198,11 +202,11 @@
     if (!descriptionElem) return false;
     if (descriptionExpanded) return true;
 
+    const jokeInner = descriptionElem.querySelector(".joke-inner");
+    if (!jokeInner) return false;
     return (
-      Math.round(
-        descriptionElem.children[0]?.children[0]?.children[0]?.getBoundingClientRect()
-          .height ?? 0,
-      ) >= 124
+      jokeInner.scrollHeight > jokeInner.clientHeight ||
+      descriptionElem.scrollHeight > descriptionElem.clientHeight
     );
   };
 
@@ -215,6 +219,10 @@
     descriptionExpanded = !descriptionExpanded;
     if (!descriptionExpanded) {
       descriptionElem.scrollTop = 0;
+    } else {
+      expandedDescriptionHeight =
+        descriptionElem.children[0]?.children[0]?.children[0]?.getBoundingClientRect()
+          .height ?? 0;
     }
   }
 </script>
@@ -223,9 +231,11 @@
   class="shorts-video-container"
   class:swiping
   class:adPlaying
+  inert={Math.abs(offset) >= 1}
+  aria-hidden={Math.abs(offset) >= 1}
   class:hidden={scrollDirection === "down" ? offset >= 1 : offset <= -1}
   style="z-index: {Math.abs(offset) < 1 ? 1 : -1}; top: {offset *
-    100}%; background-image: url(https://i.ytimg.com/vi/{rip.ytid}/hqdefault.jpg)"
+    100}%; background-image: url(https://i.ytimg.com/vi/{rip.ytid}/hqdefault.jpg); --description-height: {expandedDescriptionHeight}px"
   on:wheel={(e) => {
     if (scrollDirection) return;
     if (e.deltaY < 0) {
@@ -303,7 +313,11 @@
   {/if}
 
   <div class="short-actions" on:click={(e) => e.stopPropagation()}>
-    <button id="{rip.ytid}-like" on:click={like}>
+    <button
+      id="{rip.ytid}-like"
+      on:click={like}
+      aria-hidden={Math.abs(offset) >= 1}
+    >
       {#if $likes.includes(rip.ytid)}
         <div class="like-animation">
           <LottiePlayer
@@ -317,28 +331,44 @@
         <ThumbUpOutline />
       {/if}
     </button>
-    <label for="{rip.ytid}-like">
+    <label for="{rip.ytid}-like" aria-hidden={Math.abs(offset) >= 1}>
       {$likes.includes(rip.ytid) ? "Liked" : "Like"}
     </label>
 
-    <button id="{rip.ytid}-yt" on:click={watchOnYouTube}>
+    <button
+      id="{rip.ytid}-yt"
+      on:click={watchOnYouTube}
+      aria-hidden={Math.abs(offset) >= 1}
+    >
       <YouTubeIcon />
     </button>
     <label for="{rip.ytid}-yt"> Watch </label>
 
-    <button id="{rip.ytid}-wiki" on:click={wiki}>
+    <button
+      id="{rip.ytid}-wiki"
+      on:click={wiki}
+      aria-hidden={Math.abs(offset) >= 1}
+    >
       <Notebook />
     </button>
     <label for="{rip.ytid}-wiki"> Wiki </label>
 
-    <button id="{rip.ytid}-share" on:click={share}>
+    <button
+      id="{rip.ytid}-share"
+      on:click={share}
+      aria-hidden={Math.abs(offset) >= 1}
+    >
       <Share />
     </button>
     <label for="{rip.ytid}-share"> Share </label>
-    <button on:click={() => dispatch("menu")}>
+    <button
+      on:click={() => dispatch("menu")}
+      aria-hidden={Math.abs(offset) >= 1}
+    >
       <DotsVertical />
     </button>
   </div>
+  <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
   <header
     class:expanded={descriptionExpanded}
     class:expandable={descriptionExpandable}
@@ -350,8 +380,8 @@
         toggleDescription(e);
       }
     }}
-    role="button"
-    tabindex="0"
+    role={Math.abs(offset) >= 1 ? "none" : "button"}
+    tabindex={Math.abs(offset) >= 1 ? undefined : 0}
     aria-expanded={descriptionExpanded}
   >
     {#if rip.series}
@@ -471,7 +501,8 @@
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      rgba(0, 0, 0, 0.8) 50%
+      rgba(0, 0, 0, 0.8) 50%,
+      #111 51%
     );
     background-size: 100% 200%;
     background-repeat: no-repeat;
@@ -479,7 +510,7 @@
     -webkit-tap-highlight-color: transparent;
     transition:
       opacity 0.2s ease-in-out,
-      background-position 0.3s ease-in-out;
+      background-position 0.2s ease-in-out;
   }
   header:not(:has(.description-container)) {
     padding-bottom: 1rem;
@@ -522,9 +553,7 @@
     font-size: 0.9em;
     color: #ccc;
     overflow: auto;
-    transition:
-      max-height 0.2s ease-in-out,
-      background-color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out;
     overflow: hidden;
     border-radius: 0 0.5rem 0 0;
   }
@@ -554,6 +583,17 @@
     opacity: 0 !important;
     pointer-events: none;
   }
+  .shorts-video-container:has(header.expanded) {
+    background-image: unset !important;
+  }
+  :global(.shorts-video-container > div:has(iframe)) {
+    max-height: 100vh;
+  }
+  :global(.shorts-video-container:has(header.expanded) > div:has(iframe)) {
+    transition: max-height 0.2s ease-out;
+    aspect-ratio: unset;
+    max-height: max(30vh, calc(100vh - 120px - var(--description-height, 0px)));
+  }
   header.expanded {
     background-position-y: 100%;
     padding-top: 1rem;
@@ -563,7 +603,10 @@
   header.expanded .description-container {
     pointer-events: all;
     overflow: auto;
-    max-height: calc(100vh - 228px);
+    max-height: calc(70vh - 120px);
+    transition:
+      max-height 0.2s ease-in-out,
+      background-color 0.2s ease-in-out;
   }
   .progress-bar {
     position: absolute;

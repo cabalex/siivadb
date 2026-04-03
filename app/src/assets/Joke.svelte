@@ -53,11 +53,12 @@
   }
 
   function parse(joke: string) {
-    console.log(joke);
     joke = joke
       .replace(/<!--.+?-->/gm, "")
       .replace(/\<[/ ]*?nowiki[ /]*?>/gm, "")
+      .replace(/\<br ?\/?>/gm, "\n")
       .replaceAll("<", "&lt;")
+      .replaceAll(/\n?&lt;(\/?(?:blockquote|poem))>\n?/gm, "<$1>")
       .replace(/^\*(.+?)$/gm, "<li>$1</li>")
       // surround lis with ul
       .replace(/(<li>.+<\/li>)/gms, "<ul>$1</ul>");
@@ -203,5 +204,12 @@
     white-space: normal;
     margin: 0;
     padding-inline-start: 1.5em;
+  }
+  :global(.joke blockquote) {
+    border-left: 3px solid #555;
+    margin: 0;
+    margin-top: 10px;
+    padding-left: 10px;
+    color: #aaa;
   }
 </style>

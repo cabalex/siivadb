@@ -21,6 +21,8 @@
       }
     | null = window.location.hash.includes("shorts") ? "shorts" : null;
   let updateScroll;
+  let searchValue = "";
+  let searchType: "all" | "jokes" | "titles" = "all";
   let stack = [];
 
   $browser
@@ -47,6 +49,35 @@
     });
   }
 
+  function addPlaylistToShortsStack(lookahead: any[]) {
+    if (stack.length === 0) {
+      setTimeout(() => {
+        stack = [
+          ...stack,
+          {
+            lookahead,
+            position: 0,
+            name: selectedPlaylist?.name ?? "Search Results",
+            fetchMore: false,
+          },
+        ];
+      }, 200);
+    } else {
+      stack = [
+        ...stack,
+        {
+          lookahead,
+          position: 0,
+          name:
+            selectedPlaylist === null
+              ? "Search Results"
+              : (selectedPlaylist.name ?? "Search Results"),
+          fetchMore: false,
+        },
+      ];
+    }
+  }
+
   $: isLikesSelected =
     selectedPlaylist &&
     typeof selectedPlaylist === "object" &&
@@ -66,7 +97,13 @@
     <button
       class="tab"
       class:active={selectedPlaylist === null}
-      on:click={() => (selectedPlaylist = null)}
+      on:click={() => {
+        if (selectedPlaylist === null) {
+          searchType = "all";
+          searchValue = "";
+        }
+        selectedPlaylist = null;
+      }}
     >
       <Magnify />
       Search
@@ -92,13 +129,22 @@
     <button
       class="tab"
       class:active={isLikesSelected}
-      on:click={() =>
-        (selectedPlaylist = {
+      on:click={() => {
+        if (
+          selectedPlaylist &&
+          typeof selectedPlaylist !== "string" &&
+          selectedPlaylist.default
+        ) {
+          searchType = "all";
+          searchValue = "";
+        }
+        selectedPlaylist = {
           name: "Liked Rips",
           createdAt: 0,
           default: true,
           videos: $likes,
-        })}
+        };
+      }}
     >
       {#if isLikesSelected}
         <ThumbUp />
@@ -121,7 +167,7 @@
       </button>
     {/each}
     <div style="height: 100%;"></div>
-    <div class="settings">
+    <div class="settings" class:playerOpen={$currentRip !== null}>
       <label for="show-jokes">Show jokes</label>
       <input
         type="checkbox"
@@ -142,31 +188,22 @@
       {:else}
         <RipBrowser
           bind:updateScroll
+          bind:searchType
+          bind:searchValue
           browser={$browser}
           bind:playlist={selectedPlaylist}
           on:shorts={(e) => {
-            stack = [
-              ...stack,
-              {
-                lookahead: e.detail,
-                position: 0,
-                name:
-                  selectedPlaylist === null
-                    ? "Search Results"
-                    : selectedPlaylist.name,
-                fetchMore: false,
-              },
-            ];
             selectedPlaylist = "shorts";
+            addPlaylistToShortsStack(e.detail);
           }}
         />
       {/if}
     {:else}
       <div class="loading">
         {#if Math.round(loadProgress * 100) === 100}
-          <h2>Decompressing...</h2>
+          <h2>Loading...</h2>
         {:else}
-          <h2>Loading ({Math.round(loadProgress * 100)}%)...</h2>
+          <h2>Downloading ({Math.round(loadProgress * 100)}%)...</h2>
         {/if}
         <div class="progress-bar">
           <div class="progress" style="width: {loadProgress * 100}%"></div>
@@ -296,6 +333,12 @@
   :global(.tab.active.siivashorts-tab svg) {
     transform: scale(1.25);
   }
+  aside .settings {
+    transition: padding 0.2s cubic-bezier(0.215, 0.61, 0.355, 1);
+  }
+  aside .settings.playerOpen {
+    padding-bottom: 70px;
+  }
   @media screen and (max-width: 1100px) {
     main {
       border: none;
@@ -358,6 +401,9 @@
       line-height: 1;
       font-size: 0.7rem;
       width: 100%;
+    }
+    aside .settings.playerOpen {
+      padding: unset !important;
     }
     :global(.tab.active svg) {
       transform: scale(1.25);

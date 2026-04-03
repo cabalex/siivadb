@@ -169,8 +169,8 @@ button.link {
   .rip-inner .joke {
     position: absolute;
     bottom: 0px;
-    max-height: 100px;
-    width: calc(90% - 20px) !important;
+    width: unset !important;
+    max-height: 93px;
     left: 10%;
   }
   .rip-actions {

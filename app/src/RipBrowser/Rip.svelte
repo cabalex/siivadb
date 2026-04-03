@@ -243,4 +243,13 @@
     font-size: 0.8em;
     font-weight: bold;
   }
+  @media screen and (max-width: 900px) {
+    :global(.rip:not(.active) .joke-inner) {
+      display: -webkit-box;
+      line-clamp: 3;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
 </style>

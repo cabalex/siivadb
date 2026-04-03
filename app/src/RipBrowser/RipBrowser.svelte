@@ -25,8 +25,8 @@
     }, 0);
   };
 
-  let searchValue = "";
-  let searchType: "all" | "jokes" | "titles" = "all";
+  export let searchValue = "";
+  export let searchType: "all" | "jokes" | "titles" = "all";
 
   let start;
   let end;
@@ -119,6 +119,7 @@
 
   let listHeight =
     window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0);
+  let itemSize = window.innerWidth < 900 ? 220 : 120;
 </script>
 
 <main>
@@ -164,7 +165,7 @@
   {#if $currentResults.length > 0}
     <VirtualList
       itemCount={$currentResults.length}
-      itemSize={window.innerWidth < 900 ? 220 : 120}
+      {itemSize}
       width="100%"
       height={listHeight}
       scrollToAlignment="start"
@@ -212,6 +213,33 @@
             <span>
               {$currentResults.length} results
             </span>
+            {#if $currentResults.length > 0}
+              <button
+                title="Open search in SiIvaShorts"
+                class="siivashorts-btn"
+                on:click={() => dispatch("shorts", $currentResults)}
+              >
+                <TowerFilled />
+                <img
+                  src="https://i.ytimg.com/vi/{$currentResults[0]
+                    .ytid}/default.jpg"
+                  alt="SiIvaShorts"
+                />
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <div class="search-header">
+            <div class="text">
+              <span>
+                Welcome to <b>SiIvaDB</b>, a daily updating database of
+                high-quality rips.
+              </span>
+              <span>
+                You can also browse these results in SiIvaShorts by clicking the
+                button on the right.
+              </span>
+            </div>
             {#if $currentResults.length > 0}
               <button
                 title="Open search in SiIvaShorts"
@@ -296,6 +324,7 @@
 <svelte:body
   on:resize={() => {
     listHeight = window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0);
+    itemSize = window.innerWidth < 900 ? 220 : 120;
   }}
 />
 
@@ -371,8 +400,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    text-align: left;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #555;
+  }
+  .search-header .text {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-width: unset;
+    margin-right: 10px;
   }
   .siivashorts-btn {
+    flex-shrink: 0;
     position: relative;
     border: none;
     outline: none;

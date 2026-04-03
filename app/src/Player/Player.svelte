@@ -3,6 +3,7 @@
   import { cubicOut } from "svelte/easing";
   import YouTube from "svelte-youtube";
   import PlaylistAdd from "svelte-material-icons/PlaylistPlus.svelte";
+  import Notebook from "svelte-material-icons/Notebook.svelte";
   import OpenInNew from "svelte-material-icons/OpenInNew.svelte";
   import Close from "svelte-material-icons/Close.svelte";
   import { currentRip, player, options, currentResults } from "../stores";
@@ -110,6 +111,14 @@
         rel="noopener noreferrer"
         target="_blank"
         href={getWikilink($currentRip.rawname)}
+      >
+        <Notebook />
+      </a>
+      <a
+        class="btn"
+        rel="noopener noreferrer"
+        target="_blank"
+        href={"https://www.youtube.com/watch?v=" + $currentRip.ytid}
       >
         <OpenInNew />
       </a>
