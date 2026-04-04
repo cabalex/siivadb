@@ -107,7 +107,7 @@
         rip.description.toLowerCase().includes(query),
       );
     }
-    const exactMatch = rips.find((rip) => rip.name === name);
+    const exactMatch = rips.find((rip) => rip.rawname === name);
     if (exactMatch) {
       rips.unshift(exactMatch);
     }

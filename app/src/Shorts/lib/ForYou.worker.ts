@@ -92,7 +92,10 @@ class ForYouAggregator {
       const terms = this.ripList.get(like);
       const termWeight = this.likeWeight / terms.length;
       for (const term of terms) {
-        this.liked.set(term, (this.liked.get(term) || 0) + termWeight);
+        this.liked.set(
+          term,
+          Math.min(100, (this.liked.get(term) || 0) + termWeight),
+        );
       }
     }
     this.onSeen(JSON.stringify(Array.from(this.seen)));
@@ -124,7 +127,7 @@ class ForYouAggregator {
       if (weight !== undefined) {
         // Prioritize weight a lot more, as regular values
         // tend to not make a difference at all given the thousands of rips in the pool
-        weights.push(weight * 10);
+        weights.push(weight * 5);
       }
     }
     if (weights.length === 0) return 1;
@@ -194,7 +197,10 @@ class ForYouAggregator {
     const affectedRips = new Set<string>();
     for (const term of terms) {
       if (term === ignoreTag) continue;
-      this.liked.set(term, (this.liked.get(term) || 0) + termWeight);
+      this.liked.set(
+        term,
+        Math.min(100, (this.liked.get(term) || 0) + termWeight),
+      );
       // Update weights for all rips with this term
       for (const mappedId of this.ripList.getByTerm(term)) {
         affectedRips.add(mappedId);
@@ -220,9 +226,9 @@ class ForYouAggregator {
     this.addSeen(ytid);
   }
 
-  scrollPast(ytid: string, dwellTime = 5000, ignoreTag?: string = undefined) {
+  scrollPast(ytid: string, dwellTime = 5000, ignoreTag?: string) {
     // If scrolled past quickly, don't deweight the rip
-    if (dwellTime < this.ignoreTimeMin) return;
+    if (dwellTime < this.ignoreTimeMin || this.liked.has(ytid)) return;
     if (dwellTime > this.ignoreTimeMax) dwellTime = this.ignoreTimeMax;
     // 0.5s to 5s dwell time results in -5 to 3 weight
     const score =

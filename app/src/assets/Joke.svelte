@@ -58,7 +58,7 @@
       .replace(/\<[/ ]*?nowiki[ /]*?>/gm, "")
       .replace(/\<br ?\/?>/gm, "\n")
       .replaceAll("<", "&lt;")
-      .replaceAll(/\n?&lt;(\/?(?:blockquote|poem))>\n?/gm, "<$1>")
+      .replaceAll(/\n?&lt;(\/?(?:blockquote|poem|i|sup))>\n?/gm, "<$1>")
       .replace(/^\*(.+?)$/gm, "<li>$1</li>")
       // surround lis with ul
       .replace(/(<li>.+<\/li>)/gms, "<ul>$1</ul>");
