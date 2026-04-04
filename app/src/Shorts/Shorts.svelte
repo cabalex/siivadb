@@ -211,6 +211,22 @@
       location.reload();
     }
   }
+  function viewRipInContext() {
+    const rip = current.lookahead[current.position];
+    const index = browser.rips.findIndex((r) => r.ytid === rip.ytid);
+    if (index !== -1) {
+      stack = [
+        ...stack,
+        {
+          lookahead: browser.rips,
+          position: index,
+          name: "Search Results",
+          fetchMore: false,
+        },
+      ];
+    }
+    menuOpen = false;
+  }
 
   /* Stack manipulation events */
   let animation = null;
@@ -337,6 +353,9 @@
               Shuffle playlist
             </button>
           {/if}
+          <button class="menu-item" on:click={viewRipInContext}>
+            View rip in context
+          </button>
           <button
             class="menu-item"
             on:click={() => {
