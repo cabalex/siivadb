@@ -60,7 +60,7 @@ if len(rips) == 0:
 
 # Update last 50 rips that don't have wiki entries
 updateCount = 0
-for joke, i in enumerate(db.jokeTable):
+for i, joke in enumerate(db.jokeTable):
   if joke == "":
       db.jokeTable[i] = "MUST_FETCH"
       updateCount += 1
