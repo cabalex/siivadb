@@ -58,6 +58,16 @@ if len(rips) == 0:
     print("No new rips found.")
     exit(0)
 
+# Update last 50 rips that don't have wiki entries
+updateCount = 0
+for joke, i in enumerate(db.jokeTable):
+  if joke == "":
+      db.jokeTable[i] = "MUST_FETCH"
+      updateCount += 1
+  if updateCount >= 50:
+      break
+print(f"Marked {updateCount} rips for joke updates.")
+
 print(f"{len(rips)} need to be updated.")
 
 for i in range(0, len(rips), 50):
