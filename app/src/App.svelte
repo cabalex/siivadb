@@ -496,7 +496,7 @@
     aside.nav {
       flex-direction: row;
       position: fixed;
-      bottom: var(--safe-area-inset-bottom, 0);
+      bottom: env(safe-area-inset-bottom);
       left: 0;
       z-index: 101;
       background-color: #111;

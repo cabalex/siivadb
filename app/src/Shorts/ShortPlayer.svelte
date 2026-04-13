@@ -662,12 +662,15 @@
     background-image: unset !important;
   }
   :global(.shorts-video-container > div:has(iframe)) {
-    max-height: 100vh;
+    max-height: 100dvh;
   }
   :global(.shorts-video-container:has(header.expanded) > div:has(iframe)) {
     transition: max-height 0.2s ease-out;
     aspect-ratio: unset;
-    max-height: max(30vh, calc(100vh - 120px - var(--description-height, 0px)));
+    max-height: max(
+      30vh,
+      calc(100dvh - 120px - var(--description-height, 0px))
+    );
   }
   header.expanded {
     background-position-y: 100%;

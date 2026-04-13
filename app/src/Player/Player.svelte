@@ -151,6 +151,11 @@
     startY = null;
     startExpandedPercent = null;
   }
+
+  // Videos on iOS cannot play automatically on first load, and
+  // the window is too small to press the play button, so we have
+  // to extend the iframe size when we detect it (playState of -1)
+  let iosPlayWorkaround = false;
 </script>
 
 <svelte:head>
@@ -229,14 +234,12 @@
     <div class="filler-video" />
     <div
       class="video"
+      class:ios-play={iosPlayWorkaround}
       on:touchstart={(e) => {
         e.stopPropagation();
         onTouchStart(e);
       }}
     >
-      {#if error}
-        <div class="error">An error occurred while loading the video.</div>
-      {/if}
       <YouTube
         options={{
           playerVars: {
@@ -250,6 +253,17 @@
         videoId={$currentRip.ytid}
         on:error={(e) => (error = true)}
         on:ready={(e) => player.set(e.detail.target)}
+        on:stateChange={(e) => {
+          if (e.detail.data === -1) {
+            setTimeout(() => {
+              if ($player && $player.getPlayerState() === -1) {
+                iosPlayWorkaround = true;
+              }
+            }, 100);
+          } else {
+            iosPlayWorkaround = false;
+          }
+        }}
         on:end={(e) => nextRip()}
       />
     </div>
@@ -305,14 +319,14 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    bottom: max(0px, calc(100% * var(--expanded)));
+    bottom: max(0px, calc(100dvh * var(--expanded)));
   }
   .shorts-player {
     position: absolute;
     top: 100%;
     left: 0;
     width: 100%;
-    height: calc(100vh - var(--safe-area-inset-bottom, 0px));
+    height: 100%;
   }
   :global(.player .shorts-player .shorts-video-container) {
     opacity: min(1, var(--expanded));
@@ -393,8 +407,8 @@
     --collapsed-right: 20px;
     --collapsed-width: 40vw;
     --collapsed-max-width: 500px;
-    --expanded-height: calc(100vh - 75px);
-    --expanded-bottom: calc(-100vh + 75px);
+    --expanded-height: calc(100dvh - 75px);
+    --expanded-bottom: calc(-100dvh + 75px);
     --expanded-right: 0px;
     --expanded-width: 100vw;
     --expanded-max-width: 100vw;
@@ -408,11 +422,7 @@
       (
         var(--collapsed-bottom) +
           (var(--expanded-bottom) - var(--collapsed-bottom)) *
-          min(1, var(--expanded)) +
-          (
-            max(0, var(--expanded) - 1) *
-              (100% - var(--safe-area-inset-bottom, 0px))
-          )
+          min(1, var(--expanded)) + (max(0, var(--expanded) - 1) * 100%)
       )
     );
     height: calc(
@@ -444,6 +454,12 @@
   :global(iframe, .video > *) {
     width: 100%;
     height: 100%;
+  }
+  :global(.video.ios-play iframe) {
+    height: 200%;
+    position: absolute;
+    top: -50%;
+    left: 0;
   }
   .player-actions {
     padding: 10px;
@@ -525,10 +541,12 @@
   }
   @media screen and (max-width: 1100px) {
     .player {
-      bottom: calc(60px + max(0px, calc(calc(100% - 60px) * var(--expanded))));
+      bottom: calc(
+        60px + max(0px, calc(calc(100dvh - 60px) * var(--expanded)))
+      );
     }
     .shorts-player {
-      height: calc(100vh - 60px - var(--safe-area-inset-bottom, 0px));
+      height: calc(100dvh - 60px);
     }
     .shorts-tooltip {
       display: block;
