@@ -12,8 +12,7 @@ interface Rip {
 }
 
 function dateOffset(time: number) {
-  return time + 1451635200_000;
-  return time + new Date(2016, 0, 1).getTime();
+  return time + new Date("2016-01-01T00:00:00Z").getTime();
 }
 
 // https://stackoverflow.com/questions/47285198/fetch-api-download-progress-indicator/72903731#72903731
@@ -203,8 +202,14 @@ export default class RipBrowser {
     return results.sort((a, b) => (a.series || "").localeCompare(b.series));
   }
 
-  async fetchWithProgress(progress: (progress: number) => void) {
-    const res = await fetch("./db/db.siivadb.zst", { method: "GET" });
+  async fetchWithProgress(
+    progress: (progress: number) => void,
+    loadWithCache = true,
+  ) {
+    const res = await fetch("./db/db.siivadb.zst", {
+      method: "GET",
+      cache: loadWithCache ? "default" : "no-cache",
+    });
     let responseSize = 0; // `responseSize` is response-size! Not necessarily download-size ('content-length')! See the above link.
     const chunks = [];
 
@@ -225,8 +230,11 @@ export default class RipBrowser {
     return bytes.buffer;
   }
 
-  async load(progress: (progress: number) => void = () => {}) {
-    let arrayBuffer = await this.fetchWithProgress(progress);
+  async load(
+    progress: (progress: number) => void = () => {},
+    loadWithCache = true,
+  ) {
+    let arrayBuffer = await this.fetchWithProgress(progress, loadWithCache);
 
     let decoder = new ZSTDDecoder();
     await decoder.init();
@@ -239,6 +247,13 @@ export default class RipBrowser {
     }
     let ripCount = view.getUint32(8, true);
     this.createdAt = dateOffset(view.getUint32(12, true) * 1000);
+    if (
+      (new Date().getTime() - this.createdAt) / 1000 / 60 / 60 >= 24 &&
+      loadWithCache
+    ) {
+      // if the database is older than 24 hours, try to fetch new database without cache
+      return await this.load(progress, false);
+    }
 
     let uploadDateTableOffset = view.getUint32(16, true);
     let durationTableOffset = view.getUint32(20, true);

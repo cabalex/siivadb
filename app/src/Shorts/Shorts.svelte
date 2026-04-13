@@ -269,6 +269,7 @@
       {#each new Array(3) as _, i}
         {#if current.lookahead[getRipIndex(current.position, i)]}
           <ShortPlayer
+            headerOffset={stack.length > 1 ? 68 : 10}
             rip={current.lookahead[getRipIndex(current.position, i)]}
             position={current.position}
             swiping={touchStartY !== null}
@@ -296,7 +297,8 @@
             <ArrowLeft />
           </button>
           <div class="text">
-            {#if current.name}
+            <!-- Only show text if added from a playlist -->
+            {#if current.name && !current.lookahead[current.position]?.reason}
               <div>watching rips from</div>
               <b>{current.name}</b>
             {/if}

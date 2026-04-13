@@ -6,8 +6,18 @@
   import ThumbUpOutline from "svelte-material-icons/ThumbUpOutline.svelte";
   import TowerFilled from "./assets/TowerFilled.svelte";
   import TowerOutline from "./assets/TowerOutline.svelte";
+  import PlaylistMusic from "svelte-material-icons/PlaylistMusic.svelte";
+  import Close from "svelte-material-icons/Close.svelte";
   import Shorts from "./Shorts/Shorts.svelte";
-  import { browser, currentRip, likes, options, playlists } from "./stores";
+  import {
+    browser,
+    currentResults,
+    currentRip,
+    likes,
+    options,
+    playlists,
+  } from "./stores";
+  import getShort from "./Shorts/ForYou";
 
   let loaded = false;
   let loadProgress = 0;
@@ -36,6 +46,8 @@
   $: {
     if (selectedPlaylist === "shorts") {
       if ($currentRip) currentRip.set(null);
+      searchValue = "";
+      searchType = "all";
       window.location.hash = "/shorts";
     } else {
       window.location.hash = "";
@@ -67,7 +79,7 @@
       }, 200);
     } else {
       stack = [
-        ...stack,
+        ...stack.filter((s) => s.name !== name),
         {
           lookahead,
           position: 0,
@@ -78,11 +90,61 @@
     }
   }
 
+  async function openInShorts(rip: any) {
+    let lookahead = [rip];
+    let position = 1;
+    let name = rip.title;
+    if (
+      $currentResults &&
+      $currentResults.findIndex((v) => v.ytid === rip.ytid) &&
+      $currentResults.length < $browser.rips.length
+    ) {
+      if (
+        selectedPlaylist !== null &&
+        typeof selectedPlaylist !== "string" &&
+        selectedPlaylist.videos.includes(rip.ytid)
+      ) {
+        name = selectedPlaylist.name;
+      } else {
+        name = "Search Results";
+      }
+      lookahead = [...$currentResults];
+      position = $currentResults.findIndex((v) => v.ytid === rip.ytid) + 1;
+    }
+    if (lookahead.length - position < 2) {
+      lookahead.push(await getShort($browser), await getShort($browser));
+    }
+    setTimeout(() => (selectedPlaylist = "shorts"), 200);
+    const stackItem = {
+      lookahead,
+      position,
+      name,
+      fetchMore: true,
+    };
+    if (stack.length === 0) {
+      stack = [
+        {
+          lookahead: [
+            await getShort($browser),
+            await getShort($browser),
+            await getShort($browser),
+          ],
+          position: 0,
+          fetchMore: true,
+        },
+        stackItem,
+      ];
+    } else {
+      stack = [...stack.filter((s) => s.name !== name), stackItem];
+    }
+  }
+
   $: isLikesSelected =
     selectedPlaylist &&
     typeof selectedPlaylist === "object" &&
     selectedPlaylist?.name === "Liked Rips" &&
     selectedPlaylist?.default;
+  let mobilePlaylistSelectorOpen = false;
 </script>
 
 <div class="content">
@@ -128,6 +190,7 @@
     </button>
     <button
       class="tab"
+      class:hide-mobile={$playlists.length > 0}
       class:active={isLikesSelected}
       on:click={() => {
         if (
@@ -154,19 +217,70 @@
       Likes
     </button>
     {#if $playlists?.length > 0}
+      <button
+        class="tab show-mobile"
+        class:active={mobilePlaylistSelectorOpen}
+        on:click={() => {
+          mobilePlaylistSelectorOpen = !mobilePlaylistSelectorOpen;
+        }}
+      >
+        {#if mobilePlaylistSelectorOpen}
+          <Close />
+        {:else}
+          <PlaylistMusic />
+        {/if}
+        Playlists
+      </button>
+    {/if}
+    {#if $playlists?.length > 0}
       <h3>Playlists</h3>
     {/if}
-    {#each $playlists as playlist}
-      <button
-        class="tab playlist"
-        class:active={selectedPlaylist?.name === playlist.name &&
-          selectedPlaylist?.createdAt === playlist.createdAt}
-        on:click={() => (selectedPlaylist = playlist)}
-      >
-        {playlist.name}
-      </button>
-    {/each}
-    <div style="height: 100%;"></div>
+    <div class="playlists" class:hide-mobile={!mobilePlaylistSelectorOpen}>
+      {#if mobilePlaylistSelectorOpen}
+        <button
+          class="tab playlist"
+          class:active={isLikesSelected}
+          on:click={() => {
+            if (
+              selectedPlaylist &&
+              typeof selectedPlaylist !== "string" &&
+              selectedPlaylist.default
+            ) {
+              searchType = "all";
+              searchValue = "";
+            }
+            selectedPlaylist = {
+              name: "Liked Rips",
+              createdAt: 0,
+              default: true,
+              videos: $likes,
+            };
+            mobilePlaylistSelectorOpen = false;
+          }}
+        >
+          {#if isLikesSelected}
+            <ThumbUp />
+          {:else}
+            <ThumbUpOutline />
+          {/if}
+          Likes
+        </button>
+      {/if}
+      {#each $playlists as playlist}
+        <button
+          class="tab playlist"
+          class:active={selectedPlaylist?.name === playlist.name &&
+            selectedPlaylist?.createdAt === playlist.createdAt}
+          on:click={() => {
+            selectedPlaylist = playlist;
+            mobilePlaylistSelectorOpen = false;
+          }}
+        >
+          <PlaylistMusic />
+          {playlist.name}
+        </button>
+      {/each}
+    </div>
     <div class="settings" class:playerOpen={$currentRip !== null}>
       <label for="show-jokes">Show jokes</label>
       <input
@@ -218,7 +332,14 @@
   </main>
   <aside />
 </div>
-<Player on:scroll={(e) => updateScroll(e.detail)} />
+<Player
+  on:scroll={(e) => updateScroll(e.detail)}
+  on:search={(e) => {
+    searchValue = e.detail.value;
+    searchType = e.detail.type;
+  }}
+  on:openInShorts={(e) => openInShorts(e.detail)}
+/>
 
 <style>
   .loading {
@@ -328,6 +449,13 @@
     transition: background-color 0.2s ease-in-out;
     border: none;
   }
+  .tab.playlist {
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+  }
   .tab:hover {
     background-color: #333;
   }
@@ -337,13 +465,28 @@
   :global(.tab.active.siivashorts-tab svg) {
     transform: scale(1.25);
   }
+  aside .playlists {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    height: 100%;
+  }
   aside .settings {
     transition: padding 0.2s cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   aside .settings.playerOpen {
     padding-bottom: 70px;
   }
+  .show-mobile {
+    display: none;
+  }
   @media screen and (max-width: 1100px) {
+    .hide-mobile {
+      display: none !important;
+    }
+    .show-mobile {
+      display: flex;
+    }
     main {
       border: none;
     }
@@ -355,7 +498,7 @@
       position: fixed;
       bottom: var(--safe-area-inset-bottom, 0);
       left: 0;
-      z-index: 100;
+      z-index: 101;
       background-color: #111;
       width: 100%;
       padding: 0;
@@ -373,7 +516,6 @@
 
     aside .logo,
     aside .updated,
-    aside .tab.playlist,
     aside h3 {
       display: none;
     }
@@ -396,6 +538,39 @@
       width: 1.5rem;
       height: 1.5rem;
     }
+    aside .playlists {
+      position: fixed;
+      bottom: 60px;
+      left: 0;
+      z-index: 100;
+      background-color: #222;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      width: 100%;
+      height: fit-content;
+      max-height: 40vh;
+      border-top: 1px solid #555;
+    }
+    aside .playlists:not(.hide-mobile) {
+      animation: slideUp 0.2s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+      z-index: -2;
+    }
+    @keyframes slideUp {
+      from {
+        transform: translateY(20%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+    aside .playlists .tab.playlist {
+      font-size: unset;
+      padding: 10px 20px;
+      border-radius: 0;
+      border-bottom: 1px solid #333;
+    }
+    aside .playlists .tab.playlist.active {
+      background-color: #555 !important;
+    }
     aside .settings {
       display: flex;
       flex-direction: column-reverse;
@@ -409,7 +584,7 @@
     aside .settings.playerOpen {
       padding: unset !important;
     }
-    :global(.tab.active svg) {
+    :global(.tab:not(.playlist).active svg) {
       transform: scale(1.25);
     }
     :global(aside .tab.siivashorts-tab svg) {

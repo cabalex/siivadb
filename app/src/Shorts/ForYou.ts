@@ -83,14 +83,19 @@ interface ForYouWindow extends Window {
   ForYou?: ForYouInterface;
 }
 
+export async function initializeForYou(browser: RipBrowser) {
+  const aggregator = new ForYouInterface(browser);
+  (window as ForYouWindow).ForYou = aggregator;
+  await aggregator.init();
+  return aggregator;
+}
+
 export default async function getShort(browser: RipBrowser) {
   if ((window as ForYouWindow).ForYou) {
     await (window as ForYouWindow).ForYou.ready;
     return await (window as ForYouWindow).ForYou.getOne();
   } else {
-    const aggregator = new ForYouInterface(browser);
-    (window as ForYouWindow).ForYou = aggregator;
-    await aggregator.init();
+    const aggregator = await initializeForYou(browser);
     return await aggregator.getOne();
   }
 }

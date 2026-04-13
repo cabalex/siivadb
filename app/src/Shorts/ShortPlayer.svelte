@@ -20,6 +20,14 @@
   export let offset = 0;
   export let swiping = false;
   export let autoplay = false;
+  export let externalPlayer = null;
+  export let headerOffset = 10;
+
+  $: {
+    if (externalPlayer) {
+      player = externalPlayer;
+    }
+  }
 
   let oldPosition = position;
   let oldOffset = offset;
@@ -67,6 +75,7 @@
     } else {
       progress = duration > 0 ? currentTime / duration : 0;
     }
+    paused = player.getPlayerState() === 2;
   }
 
   onMount(() => {
@@ -225,6 +234,46 @@
           .height ?? 0;
     }
   }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (Math.abs(offset) >= 1 || swiping) return;
+    if (e.key === "ArrowUp") {
+      setTimeout(() => dispatch("prev"), 0);
+    } else if (e.key === "ArrowDown") {
+      setTimeout(() => dispatch("next"), 0);
+    } else if (e.key === "ArrowLeft") {
+      if (player) {
+        player.seekTo(Math.max(0, player.getCurrentTime() - 5));
+      }
+    } else if (e.key === "ArrowRight") {
+      if (player) {
+        player.seekTo(
+          Math.min(player.getDuration(), player.getCurrentTime() + 5),
+        );
+      }
+    } else if (e.key === "Enter" || e.key === " " || e.key === "k") {
+      if (player) {
+        if (player.getPlayerState() === 1) {
+          player.pauseVideo();
+        } else {
+          player.playVideo();
+        }
+      }
+    } else if (e.key === "l") {
+      like();
+    } else if (e.key === "s") {
+      share();
+    } else if (e.key === "w") {
+      watchOnYouTube();
+    } else if (!isNaN(parseInt(e.key))) {
+      const num = parseInt(e.key);
+      if (num === 0) {
+        player.seekTo(player.getDuration());
+      } else {
+        player.seekTo((player.getDuration() * num) / 10);
+      }
+    }
+  }
 </script>
 
 <div
@@ -233,9 +282,12 @@
   class:adPlaying
   inert={Math.abs(offset) >= 1}
   aria-hidden={Math.abs(offset) >= 1}
+  class:external-player={externalPlayer}
   class:hidden={scrollDirection === "down" ? offset >= 1 : offset <= -1}
   style="z-index: {Math.abs(offset) < 1 ? 1 : -1}; top: {offset *
-    100}%; background-image: url(https://i.ytimg.com/vi/{rip.ytid}/hqdefault.jpg); --description-height: {expandedDescriptionHeight}px"
+    100}%; {!externalPlayer
+    ? `background-image: url(https://i.ytimg.com/vi/${rip.ytid}/hqdefault.jpg); `
+    : ''} --description-height: {expandedDescriptionHeight}px"
   on:wheel={(e) => {
     if (scrollDirection) return;
     if (e.deltaY < 0) {
@@ -255,57 +307,66 @@
     }
   }}
 >
-  <YouTube
-    options={{
-      playerVars: {
-        autoplay: 1,
-        controls: 0,
-        modestbranding: 1,
-        rel: 0,
-        playsinline: 1,
-        loop: 1,
-      },
-    }}
-    videoId={rip.ytid}
-    on:error={(e) => {
-      console.log("Player errored with code", e.detail.data);
-      error = e.detail.data;
-    }}
-    on:play={() => {
-      error = null;
-      if (Math.abs(offset) >= 1) player.mute();
-    }}
-    on:end={() => {
-      if (Math.abs(offset) < 1) {
-        if (autoplay) {
-          dispatch("next");
-        } else {
-          player.seekTo(0);
+  {#if !externalPlayer}
+    <YouTube
+      options={{
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          modestbranding: 1,
+          rel: 0,
+          playsinline: 1,
+          loop: 1,
+        },
+      }}
+      videoId={rip.ytid}
+      on:error={(e) => {
+        console.log("Player errored with code", e.detail.data);
+        error = e.detail.data;
+      }}
+      on:play={() => {
+        error = null;
+        if (Math.abs(offset) >= 1) player.mute();
+      }}
+      on:end={() => {
+        if (Math.abs(offset) < 1) {
+          if (autoplay) {
+            dispatch("next");
+          } else {
+            player.seekTo(0);
+          }
         }
-      }
-    }}
-    on:ready={(e) => {
-      player = e.detail.target;
-      error = null;
-      player.setLoop(true);
-      if (Math.abs(offset) >= 1) player.mute();
-    }}
-    on:stateChange={(e) => {
-      paused = e.detail.data === 2;
-    }}
-  />
-  {#if error}
-    <div class="error">⚠ Couldn't load that video (error {error}). Sorry!</div>
+      }}
+      on:ready={(e) => {
+        player = e.detail.target;
+        error = null;
+        player.setLoop(true);
+        if (Math.abs(offset) >= 1) player.mute();
+      }}
+      on:stateChange={(e) => {
+        paused = e.detail.data === 2;
+      }}
+    />
   {/if}
+  <div class="header-toasts" style="top: {Math.max(10, headerOffset)}px">
+    {#if error}
+      <div class="error">
+        ⚠ Couldn't load that video (error {error}). Sorry!
+      </div>
+    {/if}
+    {#if adPlaying}
+      <div class="error" style="text-align: left;">
+        This ad is placed here by YouTube, and not by the SiIvaGunner team.
+        Watch through it to uncover the rip inside!
+      </div>
+    {/if}
+  </div>
   {#if adPlaying}
-    <div class="error" style="text-align: left;">
-      This ad is placed here by YouTube, and not by the SiIvaGunner team. Watch
-      through it to uncover the rip inside!
-    </div>
     <button class="next-ad" on:click={() => dispatch("next")}>
       No thanks, skip rip
     </button>
   {/if}
+
   {#if paused}
     <div class="paused-overlay">
       <Pause />
@@ -363,7 +424,8 @@
     <label for="{rip.ytid}-share"> Share </label>
     <button
       on:click={() => dispatch("menu")}
-      aria-hidden={Math.abs(offset) >= 1}
+      style={externalPlayer ? "opacity: 0; pointer-events: none" : ""}
+      aria-hidden={Math.abs(offset) >= 1 || externalPlayer}
     >
       <DotsVertical />
     </button>
@@ -474,6 +536,8 @@
   </div>
 </div>
 
+<svelte:document on:keydown={handleKeyDown} />
+
 <style>
   .shorts-video-container {
     position: absolute;
@@ -482,6 +546,9 @@
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
+  }
+  .shorts-video-container.external-player {
+    background-color: transparent !important;
   }
   .shorts-video-container.swiping {
     transition: none;
@@ -669,12 +736,15 @@
   .shorts-video-container:has(.progress-bar.seeking) .short-actions {
     opacity: 0.2;
   }
-  .error {
+  .header-toasts {
     position: absolute;
-    top: 10px;
     left: 10px;
-    box-sizing: border-box;
+    top: 10px;
     width: calc(100% - 20px);
+  }
+  .error {
+    box-sizing: border-box;
+    width: 100%;
     padding: 5px;
     border-radius: 5px;
     z-index: 5;

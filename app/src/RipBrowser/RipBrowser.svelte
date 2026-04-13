@@ -271,8 +271,13 @@
         {#if playlist !== null && searchValue && searchValue.length >= 3}
           You're searching a playlist, and this is the end. <button
             class="link"
-            on:click={() => (playlist = null)}>Search all rips</button
+            on:click={() => (playlist = null)}
           >
+            Search all rips
+          </button>
+          <button class="link" on:click={() => (searchValue = "")}>
+            Clear search
+          </button>
         {:else if playlist !== null}
           You've reached the end of the playlist. <button
             class="link"
@@ -296,6 +301,9 @@
           class="link"
           on:click={() => (playlist = null)}>Search all rips</button
         >
+        <button class="link" on:click={() => (searchValue = "")}>
+          Clear search
+        </button>
       {:else if playlist !== null}
         There's nothing in this playlist. <button
           class="link"
@@ -382,7 +390,7 @@
     gap: 10px;
   }
   .first .text {
-    max-width: min(calc(100% - 150px), 1280px);
+    width: min(calc(100% - 240px), 1280px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -390,10 +398,11 @@
     flex-grow: 1;
   }
   .first h2 {
+    width: 100%;
     margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex-shrink: 1;
+    overflow-wrap: break-word;
+    text-align: left;
   }
   .search-header {
     width: 100%;
@@ -450,7 +459,7 @@
     margin: 0 auto;
     position: relative;
     padding-top: 10px;
-    padding-bottom: calc(100vh - 225px);
+    height: calc(100% - 50px);
   }
   .copied {
     background-color: #47bd6c;
@@ -464,6 +473,10 @@
     bottom: 0;
     left: 0;
     z-index: -1;
-    border-radius: 10px;
+  }
+  @media screen and (max-width: 1100px) {
+    .last {
+      height: calc(100% - 113px);
+    }
   }
 </style>
