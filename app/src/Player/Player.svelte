@@ -267,6 +267,9 @@
           dispatch("search", { value: e.detail, type: "titles" });
           expandedPercent = 0;
         }}
+        on:prev={() => {
+          expandedPercent = 0;
+        }}
         on:next={() => {
           expandedPercent = 2;
           dispatch("openInShorts", $currentRip);

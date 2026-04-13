@@ -322,6 +322,11 @@
       videoId={rip.ytid}
       on:error={(e) => {
         console.log("Player errored with code", e.detail.data);
+        if (e.detail.data === 2) {
+          // YouTube usually shows this when it's loading,
+          // so don't display it in the UI
+          return;
+        }
         error = e.detail.data;
       }}
       on:play={() => {
@@ -362,12 +367,15 @@
     {/if}
   </div>
   {#if adPlaying}
-    <button class="next-ad" on:click={() => dispatch("next")}>
-      No thanks, skip rip
-    </button>
+    <div class="ad-actions">
+      <button class="prev-ad" on:click={() => dispatch("prev")}> Back </button>
+      <button class="next-ad" on:click={() => dispatch("next")}>
+        No thanks, skip rip
+      </button>
+    </div>
   {/if}
 
-  {#if paused}
+  {#if paused && !adPlaying}
     <div class="paused-overlay">
       <Pause />
     </div>
@@ -751,16 +759,39 @@
     background-color: rgba(255, 0, 0, 0.8);
     color: white;
   }
-  .next-ad {
+  .ad-actions {
     font-size: 0.9em;
     position: absolute;
     border-radius: 1rem;
-    background-color: rgba(0, 0, 0, 0.8);
     bottom: 40px;
     left: 10px;
+    display: flex;
+    gap: 1px;
+    padding: 1px;
+    border-radius: 100px;
+    overflow: hidden;
+    background-color: rgba(50, 50, 50, 0.8);
+  }
+  .ad-actions button {
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+  .prev-ad {
+    border-radius: 100px 0 0 100px;
+    padding-right: 15px !important;
+  }
+  .next-ad {
+    padding-left: 15px !important;
+    border-radius: 0 100px 100px 0;
   }
   :global(.shorts-video-container:not(.adPlaying) iframe) {
     pointer-events: none;
+  }
+  .shorts-video-container.external-player.adPlaying {
+    pointer-events: none;
+  }
+  .shorts-video-container.external-player.adPlaying * {
+    pointer-events: all;
   }
   :global(
       .shorts-video-container,
