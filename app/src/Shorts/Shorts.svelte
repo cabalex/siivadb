@@ -148,8 +148,11 @@
 
   let touchStartY = null;
   let touchDelta = 0;
+  let touchFrame: { y: number; time: number } | null = null;
+  let touchSpeed = 0;
   function touchStart(e: TouchEvent) {
     touchStartY = e.touches[0].clientY;
+    touchFrame = { y: touchStartY, time: Date.now() };
     e.stopPropagation();
   }
 
@@ -161,27 +164,36 @@
   function touchMove(e: TouchEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (touchStartY === null) return;
+    if (touchStartY === null || !touchFrame) return;
     if (current.position === 0 && e.touches[0].clientY > touchStartY) return;
     if (
       current.position === current.lookahead.length - 1 &&
       e.touches[0].clientY < touchStartY
-    )
+    ) {
+      touchSpeed = 0;
       return;
+    }
     touchDelta =
       (e.touches[0].clientY - touchStartY) /
       (e.currentTarget as HTMLElement).clientHeight;
+
+    const deltaY = e.touches[0].clientY - touchFrame.y;
+    const deltaTime = Date.now() - touchFrame.time;
+    touchSpeed = deltaY / deltaTime;
+    touchFrame = { y: e.touches[0].clientY, time: Date.now() };
   }
 
   function touchEnd() {
     touchStartY = null;
+    touchFrame = null;
     setTimeout(() => {
-      if (touchDelta > 0.1) {
+      if (touchSpeed > 0.4) {
         prev();
-      } else if (touchDelta < -0.1) {
+      } else if (touchSpeed < -0.4) {
         next();
       }
       touchDelta = 0;
+      touchSpeed = 0;
     }, 0);
   }
 

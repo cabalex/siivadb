@@ -86,57 +86,62 @@
     localStorage.getItem("siivadb-shortsTooltipShown") !== "true";
 
   /* Swipe up to show expanded video */
-  let startY = null;
-  let startExpandedPercent = null;
+  let initialTouch: { y: number; percent: number } | null = null;
+  let startY = 0;
+  let startTime = null;
+  let touchSpeed = 0;
   let expandedPercent = 0;
   function onTouchStart(e) {
     if (e.touches.length === 1) {
       e.stopPropagation();
       const touch = e.touches[0];
+      initialTouch = { y: touch.clientY, percent: expandedPercent };
       startY = touch.clientY;
-      startExpandedPercent = expandedPercent;
       document.addEventListener("touchmove", onTouchMove);
       document.addEventListener("touchend", onTouchEnd);
     }
   }
   function onTouchMove(e) {
-    if (startY === null || startExpandedPercent === null) return;
+    if (initialTouch === null) return;
     if (e.touches.length === 1) {
       e.preventDefault();
       e.stopPropagation();
       const touch = e.touches[0];
+      touchSpeed = (startY - touch.clientY) / (Date.now() - startTime);
       expandedPercent = Math.max(
         0,
-        startExpandedPercent + (startY - touch.clientY) / window.innerHeight,
+        initialTouch.percent +
+          (initialTouch.y - touch.clientY) / window.innerHeight,
       );
+      startTime = Date.now();
+      startY = touch.clientY;
     }
   }
   function onTouchEnd(e) {
     document.removeEventListener("touchmove", onTouchMove);
     document.removeEventListener("touchend", onTouchEnd);
-    if (startY === null || startExpandedPercent === null) return;
+    if (initialTouch === null) return;
 
     const SWIPE_THRESHOLD = 0.2;
+    const SPEED_THRESHOLD = 0.4;
     // Unfortunately, no way to disable controls after initalization,
     // so the shorts player will have controls in it
     if (
-      expandedPercent > SWIPE_THRESHOLD &&
-      startExpandedPercent < 1 - SWIPE_THRESHOLD
+      (touchSpeed > SPEED_THRESHOLD &&
+        initialTouch.percent < 1 - SWIPE_THRESHOLD) ||
+      (expandedPercent >= 1 && touchSpeed < SPEED_THRESHOLD)
     ) {
       expandedPercent = 1;
     } else if (
-      expandedPercent < 1 - SWIPE_THRESHOLD &&
-      startExpandedPercent > SWIPE_THRESHOLD
+      touchSpeed < -SPEED_THRESHOLD &&
+      initialTouch.percent > SWIPE_THRESHOLD
     ) {
       expandedPercent = 0;
-    } else if (
-      expandedPercent >= 1 + SWIPE_THRESHOLD &&
-      startExpandedPercent >= 1
-    ) {
+    } else if (touchSpeed > SPEED_THRESHOLD && initialTouch.percent >= 1) {
       expandedPercent = 2;
       dispatch("openInShorts", $currentRip);
     } else {
-      expandedPercent = startExpandedPercent;
+      expandedPercent = initialTouch.percent;
     }
 
     if (
@@ -148,8 +153,8 @@
       localStorage.setItem("siivadb-shortsTooltipShown", "true");
     }
 
-    startY = null;
-    startExpandedPercent = null;
+    initialTouch = null;
+    touchSpeed = 0;
   }
 
   // Videos on iOS cannot play automatically on first load, and
@@ -169,7 +174,7 @@
 {#if $currentRip}
   <div
     class="player"
-    class:no-animate={startExpandedPercent !== null}
+    class:no-animate={initialTouch !== null}
     class:over-expanded={expandedPercent > 1}
     style="--expanded: {expandedPercent};"
     transition:slide={{ duration: 200, easing: cubicOut }}
@@ -326,11 +331,13 @@
     top: 100%;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: calc(200dvh - 60px);
+    overflow: hidden;
   }
   :global(.player .shorts-player .shorts-video-container) {
     opacity: min(1, var(--expanded));
     width: 100%;
+    height: calc(100dvh);
   }
   .shorts-player:after {
     content: "";
@@ -344,7 +351,7 @@
   }
   .shorts-player .more-shorts {
     position: absolute;
-    top: calc(100% + 30px);
+    top: calc(100dvh + 30px);
     z-index: 1;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -546,6 +553,12 @@
       );
     }
     .shorts-player {
+      height: calc(200dvh - 60px);
+    }
+    .shorts-player .more-shorts {
+      top: calc(100dvh - 30px);
+    }
+    :global(.player .shorts-player .shorts-video-container) {
       height: calc(100dvh - 60px);
     }
     .shorts-tooltip {
