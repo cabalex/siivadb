@@ -5,6 +5,8 @@
   import ChevronUp from "svelte-material-icons/ChevronUp.svelte";
   import ChevronDown from "svelte-material-icons/ChevronDown.svelte";
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
+  import ArrowExpand from "svelte-material-icons/ArrowExpand.svelte";
+  import ArrowCollapse from "svelte-material-icons/ArrowCollapse.svelte";
   import nice from "../assets/nice.svg";
   import getShort, { getFeedInfo, addSeen, scrollPast } from "./ForYou";
   import { fly } from "svelte/transition";
@@ -44,6 +46,7 @@
     return getShort(browser);
   }
 
+  let desktopExpanded = false;
   let menuOpen = false;
   let lastScroll = Date.now();
   function next() {
@@ -278,6 +281,7 @@
   <main>
     <div
       class="videos-list"
+      class:desktop-expanded={desktopExpanded}
       class:push={animation === "push"}
       class:pop={animation === "pop"}
       on:touchstart={touchStart}
@@ -407,6 +411,7 @@
     <div class="desktop-actions">
       <button
         class="short-btn"
+        title="Previous video"
         on:click={() => prev()}
         disabled={current.position === 0}
       >
@@ -414,6 +419,20 @@
       </button>
       <button
         class="short-btn"
+        title={desktopExpanded
+          ? "Collapse to default size"
+          : "Expand to full width"}
+        on:click={() => (desktopExpanded = !desktopExpanded)}
+      >
+        {#if desktopExpanded}
+          <ArrowCollapse />
+        {:else}
+          <ArrowExpand />
+        {/if}
+      </button>
+      <button
+        class="short-btn"
+        title="Next video"
         on:click={() => next()}
         disabled={current.position === current.lookahead.length - 1}
       >
@@ -477,7 +496,7 @@
   }
   main {
     width: 100%;
-    max-width: 800px;
+    max-width: calc(100vh * (9 / 16) + 100px);
     height: 100%;
     margin: 0 auto;
     position: relative;
@@ -486,17 +505,42 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-around;
+    transition: max-width 0.3s ease-in-out;
+  }
+  main:has(.desktop-expanded) {
+    max-width: unset;
+    justify-content: center;
+  }
+  :global(#app > .content:has(.desktop-expanded) > main) {
+    max-width: unset;
+  }
+  :global(#app > .content:has(.desktop-expanded) aside:last-child) {
+    display: none;
   }
   .desktop-actions {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 10px;
+    min-width: 96px;
   }
   .videos-list {
     position: relative;
     aspect-ratio: 9 / 16;
     height: 100%;
     overflow: hidden;
+  }
+  .videos-list.desktop-expanded {
+    width: 100%;
+    aspect-ratio: unset;
+  }
+  :global(
+      .desktop-expanded .shorts-video-container,
+      .desktop-expanded .shorts-video-container > div:has(iframe),
+      .desktop-expanded .shorts-video-container iframe
+    ) {
+    width: 100%;
+    aspect-ratio: unset;
   }
   .videos-list.push,
   .videos-list.pop {
@@ -628,6 +672,9 @@
     background-color: rgba(255, 255, 255, 0.2);
   }
   @media screen and (max-width: 700px) {
+    main {
+      max-width: unset;
+    }
     .desktop-actions {
       display: none;
     }
