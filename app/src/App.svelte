@@ -51,6 +51,8 @@
       window.location.hash = "/shorts";
     } else {
       window.location.hash = "";
+      searchValue = "";
+      searchType = "all";
     }
   }
 

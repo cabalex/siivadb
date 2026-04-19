@@ -3,7 +3,7 @@
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
   import VirtualList from "svelte-tiny-virtual-list";
 
-  import { currentResults, currentRip, playlists } from "../stores";
+  import { currentResults, currentRip, likes, playlists } from "../stores";
   import SiivaBanner from "../assets/SiivaBanner.png";
   import Rip from "./Rip.svelte";
   import PlaylistAddModal from "./PlaylistAddModal/PlaylistAddModal.svelte";
@@ -49,16 +49,25 @@
         createdAt,
         videos,
       };
-      playlists.update((playlists) => {
-        let found = playlists.find(
-          (p) => p.name === name && p.createdAt === createdAt,
-        );
-        if (found) {
-          return playlists;
-        } else {
-          return [...playlists, playlist];
-        }
-      });
+      if (name === "Liked Rips" && createdAt === 0) {
+        likes.update((likedRips) => {
+          return [
+            ...likedRips,
+            ...videos.filter((ytid) => !likedRips.includes(ytid)),
+          ];
+        });
+      } else {
+        playlists.update((playlists) => {
+          let found = playlists.find(
+            (p) => p.name === name && p.createdAt === createdAt,
+          );
+          if (found) {
+            return playlists;
+          } else {
+            return [...playlists, playlist];
+          }
+        });
+      }
     }
     if (window.location.search.includes("v=")) {
       let list = window.location.search.split("v=")[1].split("&")[0];

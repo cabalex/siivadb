@@ -463,9 +463,9 @@
     height: 100%;
   }
   :global(.video.ios-play iframe) {
-    height: 200%;
+    height: calc(100% + ((1 - var(--expanded)) * 100%));
     position: absolute;
-    top: -50%;
+    top: calc(-50% * (1 - var(--expanded)));
     left: 0;
   }
   .player-actions {

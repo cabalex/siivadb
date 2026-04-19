@@ -4,7 +4,6 @@
   import { createEventDispatcher, onMount } from "svelte";
   import Joke from "../assets/Joke.svelte";
   import { likes, options } from "../stores";
-  import { LottiePlayer } from "@lottiefiles/svelte-lottie-player";
   import ThumbUpOutline from "svelte-material-icons/ThumbUpOutline.svelte";
   import YouTubeIcon from "./lib/YouTubeIcon.svelte";
   import Pause from "svelte-material-icons/Pause.svelte";
@@ -14,6 +13,7 @@
   import DateView from "../assets/DateView.svelte";
   import getWikilink from "../assets/getWikilink";
   import { addLike, removeLike } from "./ForYou";
+  import LikeIcon from "./lib/LikeIcon.svelte";
 
   export let rip: RipBrowser["rips"][0];
   export let position = 0;
@@ -235,6 +235,30 @@
     }
   }
 
+  function getLikeAnimation() {
+    const text = rip.rawname.toLowerCase() + rip.description.toLowerCase();
+    const include = (strs: string[]) => strs.some((s) => text.includes(s));
+    if (
+      include([
+        "porter robinson",
+        "goodbye to a world",
+        "shutdown",
+        "reboot",
+        "siiva a.i.",
+      ])
+    ) {
+      return "./like-GTAW.json";
+    }
+    if (include(["deltarune", "undertale", "toby fox", "sans"])) {
+      return "./like-undertale.json";
+    }
+    if (include(["grand dad", "flintstones", "granddad"])) {
+      return "./like-granddad.json";
+    }
+
+    return "./like.json";
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
     if (Math.abs(offset) >= 1 || swiping) return;
     if (e.key === "ArrowUp") {
@@ -389,12 +413,7 @@
     >
       {#if $likes.includes(rip.ytid)}
         <div class="like-animation">
-          <LottiePlayer
-            src="./like.json"
-            width="48"
-            height="48"
-            autoplay={true}
-          />
+          <LikeIcon src={getLikeAnimation()} />
         </div>
       {:else}
         <ThumbUpOutline />
