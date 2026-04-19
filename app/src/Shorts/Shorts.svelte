@@ -6,7 +6,7 @@
   import ChevronDown from "svelte-material-icons/ChevronDown.svelte";
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
   import nice from "../assets/nice.svg";
-  import getShort, { getFeedInfo, scrollPast } from "./ForYou";
+  import getShort, { getFeedInfo, addSeen, scrollPast } from "./ForYou";
   import { fly } from "svelte/transition";
   import PlaylistAddModal from "../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
   import { onMount } from "svelte";
@@ -265,6 +265,12 @@
       }
     }
     oldStack = stack;
+  }
+
+  $: {
+    if (current && current.lookahead[current.position]?.ytid) {
+      addSeen(current.lookahead[current.position]?.ytid);
+    }
   }
 </script>
 

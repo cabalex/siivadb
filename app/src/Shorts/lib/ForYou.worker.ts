@@ -47,7 +47,11 @@ class ForYouAggregator {
   ripList: RipList;
   weights: Map<string, number> = new Map();
   liked: Map<string, number> = new Map();
+  // Seen list that is saved to localStorage
   seen: Set<string> = new Set();
+  // Temporary seen list for rips that have been fetched,
+  // but not interacted with
+  tempSeen: Set<string> = new Set();
 
   likeWeight = 50;
   ignoreWeightMin = -5;
@@ -68,6 +72,7 @@ class ForYouAggregator {
 
     if (localStorage) {
       this.seen = new Set(JSON.parse(localStorage));
+      this.tempSeen = new Set(this.seen);
     }
 
     this.computeWeights(likes);
@@ -80,6 +85,8 @@ class ForYouAggregator {
 
   addSeen(ytid: string) {
     this.seen.add(ytid);
+    this.tempSeen.add(ytid);
+    this.weights.delete(ytid);
     this.onSeen(JSON.stringify(Array.from(this.seen)));
   }
 
@@ -89,6 +96,7 @@ class ForYouAggregator {
     for (const like of likes) {
       // Don't want to use addSeen here, as this may cause a lot of writes to localStorage
       this.seen.add(like);
+      this.tempSeen.add(like);
       const terms = this.ripList.get(like);
       const termWeight = this.likeWeight / terms.length;
       for (const term of terms) {
@@ -171,17 +179,18 @@ class ForYouAggregator {
     } else {
       // 18% of the time, just pick a random rip
       const eligibleRips = this.ripList.ytids.filter(
-        (ytid) => !this.seen.has(ytid),
+        (ytid) => !this.tempSeen.has(ytid),
       );
       const randomIndex = Math.floor(Math.random() * eligibleRips.length);
       selectedYtid = eligibleRips[randomIndex];
       reason = "No reason (random)";
     }
 
-    // remove rip from pool
+    // Don't remove rip from pool permanently, since user may not see rips
+    // that are fetched due to preloading; instead, scrollPast handles this
     if (selectedYtid) {
       this.weights.delete(selectedYtid);
-      this.addSeen(selectedYtid);
+      this.tempSeen.add(selectedYtid);
     } else {
       // If no rip, or the random chance didn't hit, just return a random rip
       const randomIndex = Math.floor(Math.random() * this.ripList.ytids.length);
@@ -262,6 +271,10 @@ onmessage = (event) => {
     if (aggregator) {
       const rip = aggregator.getOne();
       postMessage({ type, payload: rip });
+    }
+  } else if (rawType === "addSeen") {
+    if (aggregator) {
+      aggregator.addSeen(payload.ytid);
     }
   } else if (rawType === "addLike") {
     if (aggregator) {

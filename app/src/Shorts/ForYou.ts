@@ -62,6 +62,10 @@ class ForYouInterface {
     };
   }
 
+  async addSeen(ytid: string) {
+    await this.awaitMessage("addSeen", { ytid });
+  }
+
   async addLike(ytid: string) {
     await this.awaitMessage("addLike", { ytid });
   }
@@ -97,6 +101,13 @@ export default async function getShort(browser: RipBrowser) {
   } else {
     const aggregator = await initializeForYou(browser);
     return await aggregator.getOne();
+  }
+}
+
+export async function addSeen(id: string) {
+  if ((window as ForYouWindow).ForYou) {
+    await (window as ForYouWindow).ForYou.ready;
+    await (window as ForYouWindow).ForYou.addSeen(id);
   }
 }
 
