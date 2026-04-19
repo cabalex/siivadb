@@ -1,10 +1,12 @@
 .joke .link {
   cursor: pointer;
   user-select: none;
+  transition: color 0.2s;
 }
 .joke .time {
   color: #999;
   cursor: pointer;
   font-weight: bold;
   user-select: none;
+  transition: color 0.2s;
 }

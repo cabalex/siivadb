@@ -676,6 +676,12 @@
   header.expandable {
     cursor: pointer;
   }
+  :global(
+      header.expandable:not(.expanded) .joke .link,
+      header.expandable:not(.expanded) .joke .time
+    ) {
+    color: #777 !important;
+  }
   .shorts-video-container:has(header.expanded) .short-actions {
     opacity: 0 !important;
     pointer-events: none;

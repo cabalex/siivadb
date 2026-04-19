@@ -9,7 +9,9 @@ class RipList {
 
   _getTerms(rip: RipBrowser["rips"][0] | undefined) {
     if (!rip) return [];
-    const terms = [rip.name];
+    const terms = [
+      rip.name.split(" (")[0] + (rip.series ? " - " + rip.series : ""),
+    ];
     if (rip.series) terms.push(rip.series);
     let matches = rip.description.matchAll(termsRegex);
     for (const match of matches) {

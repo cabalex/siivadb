@@ -16,7 +16,7 @@ _Since [The YouTube Operational API](https://yt.lemnoslife.com/) was discontinue
 
 ## The SiIvaShorts Algorithm
 
-SiIvaShorts's algorithm is loosely based off of [Xikipedia](https://github.com/rebane2001/xikipedia), with some modifications. All rips have tags, which are the title, series, and the blue links in the jokes list. Each interaction gives a base score, that is divided evenly among the tags:
+SiIvaShorts's algorithm is loosely based off of [Xikipedia](https://github.com/rebane2001/xikipedia), with some modifications. All rips have tags, which are the rip name (without parentheses), series, and the blue links in the jokes list. Each interaction gives a base score, that is divided evenly among the tags:
 
 - Liking a post: +50
 - Time before skipping: -5 to +3, for between 1s to 20s (no change if watched <1s)

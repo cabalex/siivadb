@@ -110,9 +110,12 @@
         rip.description.toLowerCase().includes(query),
       );
     }
-    const exactMatch = rips.find((rip) => rip.rawname === name);
+    const exactMatch = browser.rips.find((rip) => rip.rawname === name);
     if (exactMatch) {
-      rips.unshift(exactMatch);
+      rips = [
+        exactMatch,
+        ...rips.filter((rip) => rip.ytid !== exactMatch.ytid),
+      ];
     }
     if (rips.length === 0) return;
     stack = [
