@@ -5,15 +5,7 @@ import { VitePWA, VitePWAOptions } from "vite-plugin-pwa";
 const pwaOptions: Partial<VitePWAOptions> = {
   base: "./",
   registerType: "autoUpdate",
-  includeAssets: [
-    "like.json",
-    "like-granddad.json",
-    "like-GTAW.json",
-    "like-undertale.json",
-    "like.svg",
-    "tower.svg",
-    "icons/*.png",
-  ],
+  includeAssets: ["*.json", "like.svg", "tower.svg", "icons/*.png"],
   manifest: {
     name: "SiIvaDB",
     short_name: "SiIvaDB",

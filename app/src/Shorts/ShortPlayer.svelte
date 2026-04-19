@@ -252,6 +252,9 @@
     if (include(["deltarune", "undertale", "toby fox", "sans"])) {
       return "./like-undertale.json";
     }
+    if (include(["snow", "halation", "love live"])) {
+      return "./like-snowhalation.json";
+    }
     if (include(["grand dad", "flintstones", "granddad"])) {
       return "./like-granddad.json";
     }

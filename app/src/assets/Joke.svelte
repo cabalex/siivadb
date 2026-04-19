@@ -29,8 +29,8 @@
           }
           html += "<tr>";
         } else if (line.startsWith("|") && !line.startsWith("|+")) {
+          line = line.replace(/\|\|/gm, "</td><td>");
           if (line.includes("span")) {
-            line = line.replace(/\|\|/gm, "</td><td>");
             line = line.replace(
               /\|[^\|]*?(\w+)[ ]*=[ "]*(\d+)[ "]*[^\|]*\|/gm,
               '|<td $1="$2">',
@@ -41,10 +41,16 @@
           html += line.slice(1) + "</td>";
         } else if (line.startsWith("!")) {
           // !! can be used to define multiple headers in the same line
-          html +=
-            "<th>" +
-            line.slice(1).trim().replace(/!!/gm, "</th><th>") +
-            "</th>";
+          if (line.includes("scope")) {
+            line = line.replace(
+              /![^\|]*?scope[ ]*=[ "]*(\w+)[ "]*[^\|]*\|/gm,
+              '<th scope="$1">',
+            );
+          }
+          if (line.startsWith("!")) {
+            line = "<th>" + line.slice(1).trim();
+          }
+          html += line.replace(/!!/gm, "</th><th>") + "</th>";
         }
       }
       joke = joke.replace(match[0], "<table>" + html + "</table>");
