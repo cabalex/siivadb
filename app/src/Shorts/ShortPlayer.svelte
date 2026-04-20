@@ -14,6 +14,7 @@
   import getWikilink from "../assets/getWikilink";
   import { addLike, removeLike } from "./ForYou";
   import LikeIcon from "./lib/LikeIcon.svelte";
+  import { fly } from "svelte/transition";
 
   export let rip: RipBrowser["rips"][0];
   export let position = 0;
@@ -47,6 +48,12 @@
       player.unMute();
     } else {
       player.mute();
+    }
+    if (
+      showDescriptionTooltip &&
+      localStorage.getItem("siivadb-seenDescriptionTooltip") !== null
+    ) {
+      showDescriptionTooltip = false;
     }
     scrollDirection = position > oldPosition ? "down" : "up";
     oldPosition = position;
@@ -207,6 +214,8 @@
     oldRip = rip;
   }
 
+  let showDescriptionTooltip =
+    localStorage.getItem("siivadb-seenDescriptionTooltip") === null;
   const isDescriptionExpandable = () => {
     if (!descriptionElem) return false;
     if (descriptionExpanded) return true;
@@ -228,6 +237,10 @@
     descriptionExpanded = !descriptionExpanded;
     if (!descriptionExpanded) {
       descriptionElem.scrollTop = 0;
+      if (showDescriptionTooltip) {
+        localStorage.setItem("siivadb-seenDescriptionTooltip", "true");
+        showDescriptionTooltip = false;
+      }
     } else {
       expandedDescriptionHeight =
         descriptionElem.children[0]?.children[0]?.children[0]?.getBoundingClientRect()
@@ -501,6 +514,23 @@
     {/if}
     <h2>{rip.name}</h2>
     {#if $options.showJokes}
+      {#if showDescriptionTooltip && descriptionExpandable}
+        {#if descriptionExpanded}
+          <div
+            class="description-tooltip"
+            transition:fly={{ y: 50, duration: 200 }}
+          >
+            Tap outside a link to close
+          </div>
+        {:else}
+          <div
+            class="description-tooltip"
+            out:fly|local={{ y: -50, duration: 200 }}
+          >
+            Tap to expand full joke
+          </div>
+        {/if}
+      {/if}
       {#key rip.ytid}
         <div
           class="description-container"
@@ -713,6 +743,32 @@
     transition:
       max-height 0.2s ease-in-out,
       background-color 0.2s ease-in-out;
+  }
+  .description-tooltip {
+    position: absolute;
+    left: 50%;
+    z-index: 2;
+    transform: translate(-50%, -100%);
+    background-color: rgb(49, 156, 181);
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    white-space: nowrap;
+    opacity: min(1, calc(2 - var(--expanded)));
+  }
+  .description-tooltip:after {
+    content: "";
+    z-index: 100;
+    position: absolute;
+    bottom: -10px;
+    width: 20px;
+    height: 10px;
+    background-color: rgb(49, 156, 181);
+    left: 50%;
+    transform: translate(-50%, 0);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   .progress-bar {
     position: absolute;
