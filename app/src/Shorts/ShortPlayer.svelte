@@ -69,7 +69,7 @@
     // When an ad is playing, the progressState properties will differ from
     // the actual video duration
     const progressDuration = player.playerInfo.progressState.duration;
-    adPlaying = progressDuration !== duration;
+    adPlaying = !player.playerInfo.progressState.allowSeeking;
     if (adPlaying) {
       progress = progressDuration > 0 ? currentTime / progressDuration : 0;
     } else {

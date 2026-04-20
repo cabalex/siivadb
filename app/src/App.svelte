@@ -517,12 +517,13 @@
     aside.nav {
       flex-direction: row;
       position: fixed;
-      bottom: env(safe-area-inset-bottom);
+      bottom: 0;
       left: 0;
       z-index: 101;
       background-color: #111;
       width: 100%;
       padding: 0;
+      padding-bottom: calc(env(safe-area-inset-bottom) / 2);
       height: 60px;
       border-top: 1px solid #555;
     }
@@ -547,6 +548,8 @@
       flex-shrink: 1;
       margin: 0;
       font-size: 0.7rem;
+      font-size: calc(0.7rem - (env(safe-area-inset-bottom) / 20));
+      line-height: 1;
       gap: 3px;
       background-color: transparent !important;
       outline: none;
@@ -558,6 +561,7 @@
     :global(aside .tab svg) {
       width: 1.5rem;
       height: 1.5rem;
+      height: calc(1.5rem - (env(safe-area-inset-bottom) / 4));
     }
     aside .playlists {
       position: fixed;
