@@ -19,9 +19,7 @@
   } from "./stores";
   import getShort from "./Shorts/ForYou";
 
-  let loaded = false;
-  let loadProgress = 0;
-  let selectedPlaylist:
+  type SelectedPlaylist =
     | "shorts"
     | {
         name: string;
@@ -29,7 +27,15 @@
         default?: boolean;
         videos: any[];
       }
-    | null = window.location.hash.includes("shorts") ? "shorts" : null;
+    | null;
+
+  let loaded = false;
+  let loadProgress = 0;
+  let selectedPlaylist: SelectedPlaylist = window.location.hash.includes(
+    "shorts",
+  )
+    ? "shorts"
+    : null;
   let updateScroll;
   let searchValue = "";
   let searchType: "all" | "jokes" | "titles" = "all";
@@ -46,13 +52,26 @@
   $: {
     if (selectedPlaylist === "shorts") {
       if ($currentRip) currentRip.set(null);
-      searchValue = "";
-      searchType = "all";
       window.location.hash = "/shorts";
     } else {
       window.location.hash = "";
-      searchValue = "";
-      searchType = "all";
+    }
+  }
+  let searchCache: Map<number | null, any[]> = new Map();
+  let oldPlaylist: Exclude<SelectedPlaylist, "shorts"> = null;
+  $: {
+    if (
+      selectedPlaylist !== "shorts" &&
+      selectedPlaylist?.createdAt !== oldPlaylist?.createdAt
+    ) {
+      searchCache.set(oldPlaylist ? oldPlaylist.createdAt : null, [
+        searchType,
+        searchValue,
+      ]);
+      oldPlaylist = selectedPlaylist;
+      [searchType, searchValue] = searchCache.get(
+        selectedPlaylist ? selectedPlaylist.createdAt : null,
+      ) || ["all", ""];
     }
   }
 

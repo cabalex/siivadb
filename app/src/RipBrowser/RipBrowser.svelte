@@ -81,6 +81,18 @@
     }
   });
 
+  function searchAllRips() {
+    let currentValue = searchValue;
+    let currentType = searchType;
+    searchValue = "";
+    searchType = "all";
+    playlist = null;
+    setTimeout(() => {
+      searchValue = currentValue;
+      searchType = currentType;
+    }, 100);
+  }
+
   function copyPlaylistLink() {
     const ripComma = playlist.videos.join(",");
     const name = playlist.name.replace(/,/g, "%2C");
@@ -280,7 +292,7 @@
         {#if playlist !== null && searchValue && searchValue.length >= 3}
           You're searching a playlist, and this is the end. <button
             class="link"
-            on:click={() => (playlist = null)}
+            on:click={searchAllRips}
           >
             Search all rips
           </button>
@@ -308,7 +320,7 @@
       {#if playlist !== null && searchValue && searchValue.length >= 3}
         You're searching a playlist, and there's no results. <button
           class="link"
-          on:click={() => (playlist = null)}>Search all rips</button
+          on:click={searchAllRips}>Search all rips</button
         >
         <button class="link" on:click={() => (searchValue = "")}>
           Clear search
