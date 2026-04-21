@@ -2,6 +2,8 @@ import type RipBrowser from "../../RipBrowser/RipBrowser";
 
 const termsRegex = new RegExp(/[^=]"(.+?)"|''(.+?)''|\[\[(.+?)\]\]/gm);
 
+type Balance = "balanced" | "random" | "top";
+
 class RipList {
   ytids: string[] = [];
   map: Map<string, string[]> = new Map();
@@ -145,12 +147,24 @@ class ForYouAggregator {
     return weights.reduce((a, b) => a + b, 0) / weights.length;
   }
 
-  getOne(): { ytid: string; reason: string } {
+  getOne(balance: Balance = "balanced"): { ytid: string; reason: string } {
     const chance = Math.random();
     let selectedYtid;
     let reason = "No reason";
-    if (chance <= 0.4 && this.weights.size > 0) {
-      // 40% of the time, weighted random choice
+
+    // Chance of weighted random and picking highest weight (% left over is random)
+    // Default: 50% weighted random, 32% pick highest weight, 18% random
+    let chances = [0.5, 0.82];
+    if (balance === "random") {
+      // 82% weighted random, 18% random
+      chances = [0, 0];
+    } else if (balance === "top") {
+      // 100% pick highest weight
+      chances = [-1, 1];
+    }
+
+    if (chance <= chances[0] && this.weights.size > 0) {
+      // weighted random choice
       const totalWeight = Array.from(this.weights.values()).reduce(
         (a, b) => a + Math.max(b, 1),
         0,
@@ -164,10 +178,11 @@ class ForYouAggregator {
         }
         randomWeight -= Math.max(weight, 1);
       }
-    } else if (chance <= 0.82 && this.weights.size > 0) {
-      // 42% of the time, pick the highest weighted rip
+    } else if (chance <= chances[1] && this.weights.size > 0) {
+      // pick the highest weighted rip
       let maxWeight = -Infinity;
       for (const [ytid, weight] of this.weights.entries()) {
+        if (this.tempSeen.has(ytid) || this.seen.has(ytid)) continue;
         if (weight > maxWeight) {
           maxWeight = weight;
         }
@@ -179,9 +194,9 @@ class ForYouAggregator {
       selectedYtid = chosenYtid;
       reason = `It had the highest weight (${maxWeight.toFixed(2)})`;
     } else {
-      // 18% of the time, just pick a random rip
+      // just pick a random rip
       const eligibleRips = this.ripList.ytids.filter(
-        (ytid) => !this.tempSeen.has(ytid),
+        (ytid) => !this.tempSeen.has(ytid) && !this.seen.has(ytid),
       );
       const randomIndex = Math.floor(Math.random() * eligibleRips.length);
       selectedYtid = eligibleRips[randomIndex];
@@ -271,7 +286,8 @@ onmessage = (event) => {
     postMessage({ type, payload: null });
   } else if (rawType === "getOne") {
     if (aggregator) {
-      const rip = aggregator.getOne();
+      console.log("Getting one with balance:", payload);
+      const rip = aggregator.getOne(payload?.balance ?? "balanced");
       postMessage({ type, payload: rip });
     }
   } else if (rawType === "addSeen") {

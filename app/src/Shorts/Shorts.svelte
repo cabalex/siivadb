@@ -8,12 +8,16 @@
   import ArrowExpand from "svelte-material-icons/ArrowExpand.svelte";
   import ArrowCollapse from "svelte-material-icons/ArrowCollapse.svelte";
   import nice from "../assets/nice.svg";
-  import getShort, { getFeedInfo, addSeen, scrollPast } from "./ForYou";
+  import getShort, { addSeen, scrollPast } from "./ForYou";
   import { fly } from "svelte/transition";
-  import PlaylistAddModal from "../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
   import { onMount } from "svelte";
+  import ShortsMenu from "./lib/ShortsMenu.svelte";
 
   export let browser: RipBrowser;
+  export let shortsSettings: {
+    autoplay: boolean;
+    balance: "balanced" | "random" | "top";
+  };
 
   interface StackItem {
     lookahead: Array<RipBrowser["rips"][number] & { reason?: string }>;
@@ -43,7 +47,7 @@
   $: current = stack[stack.length - 1] ?? null;
 
   function getNextShort() {
-    return getShort(browser);
+    return getShort(browser, shortsSettings.balance);
   }
 
   let desktopExpanded = false;
@@ -204,8 +208,6 @@
   }
 
   /* Menu options */
-  let playlistModalOpen = false;
-  let autoplay = false;
   function shuffleCurrent() {
     const position = current.position;
     current.lookahead = [
@@ -218,16 +220,6 @@
     ];
     menuOpen = false;
     next();
-  }
-  function resetWatchHistory() {
-    if (
-      confirm(
-        "Are you sure you want to reset your watch history? You'll start seeing repeats in your feed. This cannot be undone.\n\n(This doesn't delete your likes or playlists.)",
-      )
-    ) {
-      localStorage.removeItem("siivadb-seen");
-      location.reload();
-    }
   }
   function viewRipInContext() {
     const rip = current.lookahead[current.position];
@@ -301,7 +293,7 @@
             offset={getRipIndex(current.position, i) -
               current.position +
               touchDelta}
-            {autoplay}
+            autoplay={shortsSettings.autoplay}
             on:prev={() => prev()}
             on:next={() => next()}
             on:like={() => like()}
@@ -346,69 +338,14 @@
         </div>
       {/if}
       {#if menuOpen}
-        <div class="menu" transition:fly={{ y: 50, duration: 200 }}>
-          {#await getFeedInfo() then feedInfo}
-            <p>
-              <b>Why this rip?</b>
-              {current.lookahead[current.position]?.reason ??
-                "It's next in the playlist"}
-            </p>
-            <p>
-              Watched {feedInfo.seen}/{browser.rips.length} rips ({(
-                ((feedInfo.seen || 0) / browser.rips.length) *
-                100
-              ).toFixed(2)}%)
-            </p>
-            <p>
-              Interests:{" "}
-              {feedInfo.topTerms
-                .map((t) => `${t.term} (${Math.round(t.weight)})`)
-                .join(", ") || "None"}
-            </p>
-          {/await}
-          <button class="menu-item danger" on:click={resetWatchHistory}>
-            Reset watch history
-          </button>
-          {#if !current.fetchMore}
-            <button
-              class="menu-item"
-              on:click={() => {
-                shuffleCurrent();
-                menuOpen = false;
-              }}
-            >
-              Shuffle playlist
-            </button>
-          {/if}
-          <button class="menu-item" on:click={viewRipInContext}>
-            View rip in context
-          </button>
-          <button
-            class="menu-item"
-            on:click={() => {
-              playlistModalOpen = true;
-            }}
-          >
-            Add rip to playlist
-          </button>
-          <button
-            class="menu-item"
-            on:click={() => {
-              autoplay = !autoplay;
-              menuOpen = false;
-            }}
-          >
-            Autoplay next rip
-            {#if autoplay}
-              (on)
-            {:else}
-              (off)
-            {/if}
-          </button>
-          <button class="menu-item" on:click={() => (menuOpen = false)}>
-            Close
-          </button>
-        </div>
+        <ShortsMenu
+          {current}
+          {browser}
+          bind:shortsSettings
+          on:close={() => (menuOpen = false)}
+          on:shuffleCurrent={shuffleCurrent}
+          on:viewRipInContext={viewRipInContext}
+        />
       {/if}
     </div>
     <div class="desktop-actions">
@@ -443,14 +380,6 @@
       </button>
     </div>
   </main>
-
-  {#if playlistModalOpen}
-    {@const rip = { ...current.lookahead[current.position], reason: undefined }}
-    <PlaylistAddModal
-      video={rip}
-      on:close={() => (playlistModalOpen = false)}
-    />
-  {/if}
 {:else}
   <div class="loading">
     <h2>Setting up your feed...</h2>
@@ -627,52 +556,6 @@
   .like-notification h3,
   .like-notification p {
     margin: 0;
-  }
-  .menu {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: #222;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-    box-shadow: 0 -10px 10px rgba(0, 0, 0, 0.5);
-  }
-  .menu p {
-    padding: 5px 15px;
-    font-size: 0.8em;
-    margin: 0;
-    color: #aaa;
-    font-style: italic;
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-  .menu > p:first-child {
-    padding-top: 15px;
-  }
-  .menu > p:last-of-type {
-    padding-bottom: 15px;
-  }
-  .menu-item {
-    justify-content: flex-start;
-    text-align: left;
-    width: 100%;
-    padding: 15px;
-    border: none;
-    border-top: 1px solid #333;
-    background: none;
-    color: white;
-    border-radius: 0;
-    transition: background-color 0.2s ease-in-out;
-  }
-  .menu-item.danger {
-    color: #ff5555;
-  }
-  .menu-item:focus-visible,
-  .menu-item:hover {
-    outline: none;
-    background-color: rgba(255, 255, 255, 0.2);
   }
   @media screen and (max-width: 700px) {
     main {

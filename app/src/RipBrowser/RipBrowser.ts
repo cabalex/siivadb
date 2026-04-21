@@ -280,10 +280,75 @@ export default class RipBrowser {
         view.getUint32(uploadDateTableOffset + i * 4, true) * 1000,
       );
 
-      let name = rawname.split(" - ");
-      let series = "";
-      if (name.length > 1) {
-        series = name.pop();
+      // These series have name and series swapped, for some reason.
+      // not nice >:[ guess I'll just hardcode them for now
+      // (detecting " Music - " has many false positives)
+      const SWAPPED_SERIES = [
+        "Bros. Music",
+        "Outer Mario Bros. Music",
+        "All Night Nippon Super Mario Bros. Music",
+        "Mario Bros. Music",
+        "Super Bros. Music",
+        "Super Goomba Bros. Music",
+        "Super Mario Bros. Remastered Music",
+        "Super Mario Bros. Music",
+        "Super Mario All-Stars Music",
+        "Super Mario All Stars",
+        "Mario's Tennis Music",
+        "Kamikaze Vol. 3: Luigi Ghost House Story Music",
+        "Donkey Kong Music",
+        "Donkey Kong Jr. Music",
+        "Donkey Kong Jr. Math Music",
+        "Donkey Kong Land 2 Music",
+        "Donkey Kong Classics Music",
+        "Tennis Music",
+        "Gyromite Music",
+        "Excitebike Music",
+        "Stack-Up Music",
+        "Mach Rider Music",
+        "Fix-It Felix Jr. Music",
+        "Hogan's Alley Music",
+        "Duck Hunt Music",
+        "Joe's Duck Hunt Music",
+        "Ice Climber Music",
+        "Nintendo DSi Music",
+        "Nintendo DSi Metronome Music",
+        "Nintendo 3DS Music",
+        "Nintendo 3DS eShop Music",
+        "Face Raiders Music",
+        "AR Games Music",
+        "Nintendo Wii U Music",
+        "Zelda: Skyward Sword Music",
+        "Insaniquarium! Deluxe Music",
+      ];
+
+      let name, series;
+      if (SWAPPED_SERIES.some((s) => rawname.startsWith(s + " - "))) {
+        // swap name and series
+        name = rawname.split(" - ");
+        series = name.shift();
+      } else {
+        name = rawname.split(" - ");
+        series = "";
+        if (name.length > 1) {
+          series = name.pop();
+        }
+      }
+
+      if (
+        rawname.startsWith("Super") &&
+        rawname.includes("Stars") &&
+        !rawname.includes(" - ")
+      ) {
+        // fix series for Super Mario All Stars, which has very inconsistent naming
+        const regex =
+          /^(Super(?: .{5}|Mariofell|)(?: .D|) All[- ]Stars(?: \+ Super Mario World|))(?: Music|) ([^-].+?)$/gm;
+        const match = regex.exec(rawname);
+        if (match) {
+          console.log(match);
+          series = match[1];
+          name = [match[2]];
+        }
       }
 
       this.rips.push({

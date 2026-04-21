@@ -53,8 +53,8 @@ class ForYouInterface {
     this._ready = true;
   }
 
-  async getOne() {
-    const rip = await this.awaitMessage("getOne");
+  async getOne(balance: "balanced" | "random" | "top" = "balanced") {
+    const rip = await this.awaitMessage("getOne", { balance });
     return {
       ytid: rip.ytid,
       ...this.browser.get(rip.ytid),
@@ -94,13 +94,16 @@ export async function initializeForYou(browser: RipBrowser) {
   return aggregator;
 }
 
-export default async function getShort(browser: RipBrowser) {
+export default async function getShort(
+  browser: RipBrowser,
+  balance: "balanced" | "random" | "top" = "balanced",
+) {
   if ((window as ForYouWindow).ForYou) {
     await (window as ForYouWindow).ForYou.ready;
-    return await (window as ForYouWindow).ForYou.getOne();
+    return await (window as ForYouWindow).ForYou.getOne(balance);
   } else {
     const aggregator = await initializeForYou(browser);
-    return await aggregator.getOne();
+    return await aggregator.getOne(balance);
   }
 }
 

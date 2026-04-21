@@ -39,7 +39,15 @@
   let updateScroll;
   let searchValue = "";
   let searchType: "all" | "jokes" | "titles" = "all";
+  // shorts state
   let stack = [];
+  let shortsSettings: {
+    autoplay: boolean;
+    balance: "balanced" | "random" | "top";
+  } = {
+    autoplay: false,
+    balance: "balanced",
+  };
 
   $browser
     .load((progress) => {
@@ -133,7 +141,10 @@
       position = $currentResults.findIndex((v) => v.ytid === rip.ytid) + 1;
     }
     if (lookahead.length - position < 2) {
-      lookahead.push(await getShort($browser), await getShort($browser));
+      lookahead.push(
+        await getShort($browser, shortsSettings.balance),
+        await getShort($browser, shortsSettings.balance),
+      );
     }
     setTimeout(() => (selectedPlaylist = "shorts"), 200);
     const stackItem = {
@@ -146,9 +157,9 @@
       stack = [
         {
           lookahead: [
-            await getShort($browser),
-            await getShort($browser),
-            await getShort($browser),
+            await getShort($browser, shortsSettings.balance),
+            await getShort($browser, shortsSettings.balance),
+            await getShort($browser, shortsSettings.balance),
           ],
           position: 0,
           fetchMore: true,
@@ -319,7 +330,7 @@
   <main>
     {#if loaded}
       {#if selectedPlaylist === "shorts"}
-        <Shorts bind:stack browser={$browser} />
+        <Shorts bind:stack bind:shortsSettings browser={$browser} />
       {:else}
         <RipBrowser
           bind:updateScroll
