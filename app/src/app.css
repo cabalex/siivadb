@@ -71,6 +71,10 @@ button,
   justify-content: center;
   gap: 10px;
 }
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 button svg,
 .btn svg {
   margin: 0;
