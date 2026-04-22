@@ -193,7 +193,6 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    max-width: 600px;
     background-color: #222;
     z-index: 10;
     display: flex;
@@ -202,6 +201,7 @@
     box-shadow: 0 -10px 10px rgba(0, 0, 0, 0.5);
   }
   :global(.desktop-expanded .menu) {
+    max-width: 600px;
     left: 50% !important;
     transform: translateX(-50%);
     border-radius: 8px 8px 0 0;
