@@ -193,12 +193,19 @@
     bottom: 0;
     left: 0;
     width: 100%;
+    max-width: 600px;
     background-color: #222;
     z-index: 10;
     display: flex;
     flex-direction: column;
     text-align: left;
     box-shadow: 0 -10px 10px rgba(0, 0, 0, 0.5);
+  }
+  :global(.desktop-expanded .menu) {
+    left: 50% !important;
+    transform: translateX(-50%);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8) !important;
   }
   .menu:not(.dragging) {
     transition: bottom 0.2s ease-out;

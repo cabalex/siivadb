@@ -302,7 +302,7 @@
             on:like={() => like()}
             on:fetchRips={(e) => fetchRips(e.detail, "series")}
             on:fetchJokes={(e) => fetchRips(e.detail, "jokes")}
-            on:menu={() => (menuOpen = true)}
+            on:menu={() => (menuOpen = !menuOpen)}
           />
         {/if}
       {/each}
