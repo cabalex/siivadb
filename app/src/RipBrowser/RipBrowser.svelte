@@ -79,6 +79,15 @@
         scrollToIndex = ripIndex;
       }
     }
+
+    // Resize list elements if screen size changes
+    const onResize = () => {
+      listHeight =
+        window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0);
+      itemSize = window.innerWidth < 900 ? 220 : 120;
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   });
 
   function searchAllRips() {

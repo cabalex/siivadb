@@ -286,7 +286,6 @@ onmessage = (event) => {
     postMessage({ type, payload: null });
   } else if (rawType === "getOne") {
     if (aggregator) {
-      console.log("Getting one with balance:", payload);
       const rip = aggregator.getOne(payload?.balance ?? "balanced");
       postMessage({ type, payload: rip });
     }

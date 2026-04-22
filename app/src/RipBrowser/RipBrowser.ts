@@ -345,7 +345,6 @@ export default class RipBrowser {
           /^(Super(?: .{5}|Mariofell|)(?: .D|) All[- ]Stars(?: \+ Super Mario World|))(?: Music|) ([^-].+?)$/gm;
         const match = regex.exec(rawname);
         if (match) {
-          console.log(match);
           series = match[1];
           name = [match[2]];
         }

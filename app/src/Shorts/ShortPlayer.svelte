@@ -21,6 +21,7 @@
   export let offset = 0;
   export let swiping = false;
   export let autoplay = false;
+  export let volume = 100;
   export let externalPlayer = null;
   export let headerOffset = 10;
 
@@ -46,6 +47,7 @@
       player.seekTo(0);
       player.playVideo();
       player.unMute();
+      player.setVolume(volume);
     } else {
       player.mute();
     }
@@ -96,6 +98,11 @@
   $: {
     if (player && offset !== oldOffset) {
       updatePlayerState();
+    }
+  }
+  $: {
+    if (typeof volume === "number" && player && Math.abs(offset) < 1) {
+      player.setVolume(volume);
     }
   }
 

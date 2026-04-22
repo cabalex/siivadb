@@ -12,11 +12,13 @@
   import { fly } from "svelte/transition";
   import { onMount } from "svelte";
   import ShortsMenu from "./lib/ShortsMenu.svelte";
+  import VolumeSlider from "./lib/VolumeSlider.svelte";
 
   export let browser: RipBrowser;
   export let shortsSettings: {
     autoplay: boolean;
     balance: "balanced" | "random" | "top";
+    volume: number;
   };
 
   interface StackItem {
@@ -163,7 +165,7 @@
   function touchStart(e: TouchEvent) {
     touchStartY = e.touches[0].clientY;
     touchFrame = { y: touchStartY, time: Date.now() };
-    e.stopPropagation();
+    (document.activeElement as HTMLElement)?.blur();
   }
 
   // Visible: 0 1 2 3 4 5
@@ -294,6 +296,7 @@
               current.position +
               touchDelta}
             autoplay={shortsSettings.autoplay}
+            volume={shortsSettings.volume}
             on:prev={() => prev()}
             on:next={() => next()}
             on:like={() => like()}
@@ -320,6 +323,11 @@
               <b>{current.name}</b>
             {/if}
           </div>
+          <VolumeSlider bind:volume={shortsSettings.volume} />
+        </div>
+      {:else}
+        <div class="volume-position">
+          <VolumeSlider bind:volume={shortsSettings.volume} />
         </div>
       {/if}
       {#if showLikeNotification}
@@ -537,6 +545,13 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+  }
+  .volume-position {
+    position: absolute;
+    box-sizing: border-box;
+    top: 0;
+    right: 0;
+    z-index: 10;
   }
   .like-notification {
     position: absolute;

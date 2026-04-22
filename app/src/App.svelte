@@ -44,10 +44,31 @@
   let shortsSettings: {
     autoplay: boolean;
     balance: "balanced" | "random" | "top";
-  } = {
-    autoplay: false,
-    balance: "balanced",
-  };
+    volume: number;
+  } = getShortsSettings();
+
+  function getShortsSettings() {
+    const saved = localStorage.getItem("siivadb-shortsSettings");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse shorts settings from localStorage", e);
+      }
+    }
+    return {
+      autoplay: false,
+      balance: "balanced",
+      volume: 100,
+    };
+  }
+
+  $: {
+    localStorage.setItem(
+      "siivadb-shortsSettings",
+      JSON.stringify(shortsSettings),
+    );
+  }
 
   $browser
     .load((progress) => {
@@ -365,6 +386,7 @@
   <aside />
 </div>
 <Player
+  bind:volume={shortsSettings.volume}
   on:scroll={(e) => updateScroll(e.detail)}
   on:search={(e) => {
     searchValue = e.detail.value;

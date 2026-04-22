@@ -24,10 +24,10 @@ SiIvaShorts's algorithm is loosely based off of [Xikipedia](https://github.com/r
 
 Rips given a weight by multiplying all tag scores by 5 and averaging them, to prevent mashups with hundreds of tags from dominating the recommendations.
 
-Posts are recommended in three ways:
+By default, posts are recommended in three ways:
 
-- 40%: Pick a random rip, weighted towards rips with higher weights
-- 42%: Pick the rip with the highest weight
+- 50%: Pick a random rip, weighted towards rips with higher weights
+- 32%: Pick the rip with the highest weight
 - 18%: Pick a random rip (not weighted)
 
 Once a post is recommended, it's added to your watch history and isn't recommended again unless you clear your watch history.

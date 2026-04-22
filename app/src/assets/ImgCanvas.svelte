@@ -16,12 +16,13 @@
       let delta = 0;
 
       function draw() {
+        if (!ctx || !elem) return;
         ctx.drawImage(
           image,
           left,
           top - elem.height / 2,
           elem.width * 2,
-          elem.height * 2
+          elem.height * 2,
         );
 
         delta += 0.01;

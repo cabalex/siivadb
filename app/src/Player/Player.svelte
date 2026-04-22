@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { slide } from "svelte/transition";
+  import { fly, slide } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import YouTube from "svelte-youtube";
   import PlaylistAdd from "svelte-material-icons/PlaylistPlus.svelte";
   import Notebook from "svelte-material-icons/Notebook.svelte";
-  import OpenInNew from "svelte-material-icons/OpenInNew.svelte";
   import Close from "svelte-material-icons/Close.svelte";
   import { currentRip, player, options, currentResults } from "../stores";
   import PlayerComments from "./PlayerComments.svelte";
@@ -13,9 +12,10 @@
   import getWikilink from "../assets/getWikilink";
   import ShortPlayer from "../Shorts/ShortPlayer.svelte";
   import YouTubeIcon from "../Shorts/lib/YouTubeIcon.svelte";
-  import TowerOutline from "../assets/TowerOutline.svelte";
   import TowerFilled from "../assets/TowerFilled.svelte";
+  import VolumeSlider from "../Shorts/lib/VolumeSlider.svelte";
 
+  export let volume: number;
   let error = false;
   let commentsTimeout = null;
   let comments = null;
@@ -79,6 +79,18 @@
       expandedPercent = 0;
     }
     setCommentsTimeout();
+  }
+  $: {
+    if ($player && $currentRip && typeof volume === "number") {
+      // <Player /> is mounted even without rips,
+      // so check for currentRip before setting volume to avoid errors
+      $player.setVolume(volume);
+    }
+  }
+  $: {
+    if (!$currentRip) {
+      $player = null;
+    }
   }
 
   let playlistAddModalVisible = false;
@@ -177,7 +189,7 @@
     class:no-animate={initialTouch !== null}
     class:over-expanded={expandedPercent > 1}
     style="--expanded: {expandedPercent};"
-    transition:slide={{ duration: 200, easing: cubicOut }}
+    transition:fly={{ duration: 200, y: 50, easing: cubicOut }}
     on:touchstart={onTouchStart}
     on:touchmove={onTouchMove}
     on:touchend={onTouchEnd}
@@ -255,6 +267,7 @@
             playsinline: 1,
           },
         }}
+        {volume}
         videoId={$currentRip.ytid}
         on:error={(e) => (error = true)}
         on:ready={(e) => player.set(e.detail.target)}
@@ -273,6 +286,7 @@
       />
     </div>
     <div class="shorts-player">
+      <VolumeSlider bind:volume />
       <ShortPlayer
         rip={$currentRip}
         autoplay={true}
@@ -338,6 +352,10 @@
     opacity: min(1, var(--expanded));
     width: 100%;
     height: calc(100dvh);
+  }
+  :global(.player .shorts-player .volume-slider) {
+    z-index: 2;
+    opacity: min(1, calc(-3 + var(--expanded) * 4));
   }
   .shorts-player:after {
     content: "";
@@ -448,6 +466,7 @@
     );
 
     border-radius: 10px 10px 0 0;
+    background-color: black;
     z-index: 1;
     overflow: hidden;
   }
@@ -463,9 +482,9 @@
     height: 100%;
   }
   :global(.video.ios-play iframe) {
-    height: calc(100% + ((1 - var(--expanded)) * 100%));
+    height: calc(100% + ((1 - var(--expanded)) * 50%));
     position: absolute;
-    top: calc(-50% * (1 - var(--expanded)));
+    top: calc(-25% * (1 - var(--expanded)));
     left: 0;
   }
   .player-actions {
