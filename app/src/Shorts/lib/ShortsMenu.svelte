@@ -3,6 +3,7 @@
   import { fly } from "svelte/transition";
   import PlaylistAddModal from "../../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
   import { getFeedInfo } from "../ForYou";
+  import Modal from "../../assets/Modal.svelte";
 
   export let current;
   export let browser;
@@ -70,15 +71,7 @@
   const dispatch = createEventDispatcher();
 </script>
 
-<div
-  class="menu"
-  class:dragging={isDragging}
-  transition:fly={{ y: 50, duration: 200 }}
-  style="bottom: {Math.min(0, -(touchCurrentY - touchStartY))}px"
-  on:touchstart={touchStart}
-  on:touchmove={touchMove}
-  on:touchend={touchEnd}
->
+<Modal on:close={() => dispatch("close")}>
   {#await getFeedInfo() then feedInfo}
     <p>
       <b>Why this rip?</b>
@@ -175,7 +168,7 @@
     {/if}
   </button>
   <button class="menu-item" on:click={() => dispatch("close")}> Close </button>
-</div>
+</Modal>
 
 {#if playlistModalOpen}
   {@const rip = { ...current.lookahead[current.position], reason: undefined }}
@@ -188,29 +181,7 @@
 {/if}
 
 <style>
-  .menu {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: #222;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-    box-shadow: 0 -10px 10px rgba(0, 0, 0, 0.5);
-  }
-  :global(.desktop-expanded .menu) {
-    max-width: 600px;
-    left: 50% !important;
-    transform: translateX(-50%);
-    border-radius: 8px 8px 0 0;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8) !important;
-  }
-  .menu:not(.dragging) {
-    transition: bottom 0.2s ease-out;
-  }
-  .menu p {
+  p {
     padding: 5px 15px;
     font-size: 0.8em;
     margin: 0;
@@ -218,7 +189,7 @@
     font-style: italic;
     background-color: rgba(0, 0, 0, 0.2);
   }
-  .menu .algorithm-balance {
+  .algorithm-balance {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -239,10 +210,10 @@
   .algorithm-balance input[type="range"] {
     width: 100%;
   }
-  .menu > p:first-child {
+  p:first-child {
     padding-top: 15px;
   }
-  .menu > p:last-of-type {
+  p:last-of-type {
     padding-bottom: 15px;
   }
   .menu-item {
@@ -264,22 +235,5 @@
   .menu-item:hover {
     outline: none;
     background-color: rgba(255, 255, 255, 0.2);
-  }
-  @media screen and (max-width: 1100px) {
-    .menu {
-      padding-top: 16px;
-      border-radius: 8px 8px 0 0;
-    }
-    .menu:before {
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: 6px;
-      transform: translateX(-50%);
-      background-color: #aaa;
-      width: 25%;
-      height: 4px;
-      border-radius: 2px;
-    }
   }
 </style>

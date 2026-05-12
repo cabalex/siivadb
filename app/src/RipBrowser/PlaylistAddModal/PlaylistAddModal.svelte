@@ -2,9 +2,12 @@
   import { createEventDispatcher } from "svelte";
   import Plus from "svelte-material-icons/Plus.svelte";
   import MusicNote from "svelte-material-icons/MusicNote.svelte";
+  import Check from "svelte-material-icons/Check.svelte";
   import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
+  import Close from "svelte-material-icons/Close.svelte";
   import { type Playlist, playlists, likes } from "../../stores";
   import RipBrowser from "../RipBrowser";
+  import Modal from "../../assets/Modal.svelte";
 
   export let video: RipBrowser["rips"][number];
 
@@ -39,87 +42,70 @@
   }
 </script>
 
-<div class="modal" on:click={() => dispatch("close")}>
-  <div class="modal-inner" on:click={(e) => e.stopPropagation()}>
+<Modal on:close={() => dispatch("close")}>
+  <header>
     <h2>Add video to playlist</h2>
-    <div class="playlists">
-      <button
-        class="playlist"
-        on:click={() => addLike(video)}
-        class:active={$likes.includes(video.ytid)}
-      >
-        <ThumbUp />
-        <h3>Liked Rips</h3>
-        <span>
-          {$likes.length} rip{$likes.length === 1 ? "" : "s"}
-        </span>
-      </button>
-      {#each $playlists as playlist}
-        <button
-          class="playlist"
-          on:click={() => add(video, playlist)}
-          class:active={playlist.videos.includes(video.ytid)}
-        >
-          <MusicNote />
-          <h3>{playlist.name}</h3>
-          <span>
-            {playlist.videos.length} rip{playlist.videos.length === 1
-              ? ""
-              : "s"}
-          </span>
-        </button>
-      {/each}
-    </div>
-    <button class="playlist" on:click={createNew}>
-      <Plus />
-      Create new playlist
+    <button class="close-button" on:click={() => dispatch("close")}>
+      <Close />
     </button>
-  </div>
-</div>
+  </header>
+  <button
+    class="menu-item playlist"
+    on:click={() => addLike(video)}
+    class:active={$likes.includes(video.ytid)}
+  >
+    <ThumbUp />
+    <h3>Liked Rips</h3>
+    <span>
+      {$likes.length} rip{$likes.length === 1 ? "" : "s"}
+    </span>
+  </button>
+  {#each $playlists as playlist}
+    {@const isInPlaylist = playlist.videos.includes(video.ytid)}
+    <button
+      class="menu-item playlist"
+      on:click={() => add(video, playlist)}
+      class:active={isInPlaylist}
+    >
+      {#if isInPlaylist}
+        <Check />
+      {:else}
+        <MusicNote />
+      {/if}
+      <h3>{playlist.name}</h3>
+      <span>
+        {playlist.videos.length} rip{playlist.videos.length === 1 ? "" : "s"}
+      </span>
+    </button>
+  {/each}
+  <button class="menu-item playlist add-playlist" on:click={createNew}>
+    <Plus />
+    Create new playlist
+  </button>
+</Modal>
 
 <style>
-  .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+  header {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #fff;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+    justify-content: space-between;
   }
-  .modal-inner {
-    background-color: #333;
-    padding: 20px;
-    border-radius: 8px;
-    min-width: min(calc(100% - 40px), 500px);
-    max-width: 500px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-  h2 {
+  header h2 {
+    padding: 15px;
     margin: 0;
     font-size: 1.5em;
+  }
+  .close-button {
+    justify-content: flex-end;
+    background: none;
+    border: none;
     color: #fff;
-  }
-  .playlists {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 50vh;
-    overflow-y: auto;
-    margin-bottom: 10px;
-  }
-  .playlist {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 10px;
+    cursor: pointer;
   }
   .playlist h3 {
     margin: 0;
+    margin-right: 10%;
     flex-grow: 1;
     text-align: left;
     overflow: hidden;
@@ -128,9 +114,33 @@
   }
   .playlist span {
     white-space: nowrap;
-    color: #777;
+    color: rgba(255, 255, 255, 0.6);
   }
   .playlist.active {
     background-color: #444;
+  }
+  .menu-item {
+    justify-content: flex-start;
+    text-align: left;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-top: 1px solid #333;
+    background: none;
+    color: white;
+    border-radius: 0;
+    transition: background-color 0.2s ease-in-out;
+  }
+  .menu-item:focus-visible,
+  .menu-item:hover {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  .add-playlist {
+    color: rgb(66, 207, 239);
+  }
+  .add-playlist:focus-visible,
+  .add-playlist:hover {
+    background-color: rgba(66, 207, 239, 0.2);
   }
 </style>

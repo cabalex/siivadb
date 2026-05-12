@@ -233,6 +233,17 @@
         rel="noopener noreferrer"
         target="_blank"
         title="Watch on YouTube"
+        on:click={(e) => {
+          // Override click event to send user to URL with time
+          e.preventDefault();
+          if ($player) {
+            $player.pauseVideo();
+          }
+          window.open(
+            `https://www.youtube.com/watch?v=${$currentRip.ytid}&t=${Math.floor($player.getCurrentTime())}`,
+            "_blank",
+          );
+        }}
         href={"https://www.youtube.com/watch?v=" + $currentRip.ytid}
       >
         <YouTubeIcon />

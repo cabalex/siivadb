@@ -608,6 +608,7 @@
 <style>
   .shorts-video-container {
     position: absolute;
+    overflow: hidden;
     transition: top 0.2s cubic-bezier(0.075, 0.82, 0.165, 1);
     background-color: #000;
     background-size: contain;
@@ -734,7 +735,7 @@
     aspect-ratio: unset;
     max-height: max(
       30vh,
-      calc(100dvh - 120px - var(--description-height, 0px))
+      calc(100dvh - 120px - var(--description-height, 0px) + 56px)
     );
   }
   header.expanded {
@@ -880,6 +881,8 @@
   }
   :global(.shorts-video-container:not(.adPlaying) iframe) {
     pointer-events: none;
+    height: calc(100% + 112px) !important;
+    margin-top: -56px !important;
   }
   .shorts-video-container.external-player.adPlaying {
     pointer-events: none;

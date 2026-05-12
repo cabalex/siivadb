@@ -600,13 +600,13 @@
       position: fixed;
       bottom: 60px;
       left: 0;
-      z-index: 100;
       background-color: #222;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
       width: 100%;
       height: fit-content;
       max-height: 40vh;
       border-top: 1px solid #555;
+      display: block;
     }
     aside .playlists:not(.hide-mobile) {
       animation: slideUp 0.2s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
