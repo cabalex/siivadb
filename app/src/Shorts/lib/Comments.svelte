@@ -184,6 +184,7 @@
     </button>
     <button
       class="menu-item"
+      style="padding-bottom: 25px"
       on:click={(e) => {
         e.stopPropagation();
         dispatch("close");
@@ -259,6 +260,7 @@
     </div>
     <button
       class="menu-item"
+      style="padding-bottom: 25px"
       on:click={(e) => {
         e.stopPropagation();
         dispatch("close");
@@ -294,7 +296,7 @@
     justify-content: flex-start;
     text-align: left;
     width: 100%;
-    padding: 15px;
+    padding: 20px 15px;
     border: none;
     border-top: 1px solid #333;
     background: none;
