@@ -8,7 +8,7 @@
   import { currentRip, player, options, currentResults } from "../stores";
   import PlayerComments from "./PlayerComments.svelte";
   import PlaylistAddModal from "../RipBrowser/PlaylistAddModal/PlaylistAddModal.svelte";
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onDestroy } from "svelte";
   import getWikilink from "../assets/getWikilink";
   import ShortPlayer from "../Shorts/ShortPlayer.svelte";
   import YouTubeIcon from "../Shorts/lib/YouTubeIcon.svelte";
@@ -72,6 +72,14 @@
     }
   };
 
+  function clearVolumeInterval() {
+    if (volumeCheckInterval) {
+      clearInterval(volumeCheckInterval);
+      volumeCheckInterval = null;
+      didFirstVolumeCheck = false;
+    }
+  }
+
   $: {
     if ($currentRip) {
       error = false;
@@ -81,17 +89,15 @@
     setCommentsTimeout();
   }
   $: {
-    if ($player && $currentRip && typeof volume === "number") {
-      // <Player /> is mounted even without rips,
-      // so check for currentRip before setting volume to avoid errors
-      $player.setVolume(volume);
-    }
-  }
-  $: {
     if (!$currentRip) {
       $player = null;
+      clearVolumeInterval();
     }
   }
+
+  onDestroy(() => {
+    clearVolumeInterval();
+  });
 
   let playlistAddModalVisible = false;
   let showShortsTooltip =
@@ -167,6 +173,26 @@
 
     initialTouch = null;
     touchSpeed = 0;
+  }
+
+  // YouTube does not emit an event when volume is changed in the player,
+  // so we have to keep checking it and update the store if it changes
+  let volumeCheckInterval = null;
+  let didFirstVolumeCheck = false;
+  function checkVolumeInterval() {
+    if ($player) {
+      if (!didFirstVolumeCheck) {
+        // Set initial volume in the player,
+        // since YouTube doesn't let you set this in playerVars
+        $player.setVolume(volume);
+        didFirstVolumeCheck = true;
+      } else {
+        const currentVolume = $player.getVolume();
+        if (typeof currentVolume === "number" && currentVolume !== volume) {
+          volume = currentVolume;
+        }
+      }
+    }
   }
 
   // Videos on iOS cannot play automatically on first load, and
@@ -278,10 +304,14 @@
             playsinline: 1,
           },
         }}
-        {volume}
         videoId={$currentRip.ytid}
         on:error={(e) => (error = true)}
-        on:ready={(e) => player.set(e.detail.target)}
+        on:ready={(e) => {
+          player.set(e.detail.target);
+          if (!volumeCheckInterval) {
+            volumeCheckInterval = setInterval(checkVolumeInterval, 100);
+          }
+        }}
         on:stateChange={(e) => {
           if (e.detail.data === -1) {
             setTimeout(() => {
