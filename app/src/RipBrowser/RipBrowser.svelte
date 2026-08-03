@@ -1,6 +1,7 @@
 <script lang="ts">
   import Close from "svelte-material-icons/Close.svelte";
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
+  import Magnify from "svelte-material-icons/Magnify.svelte";
   import VirtualList from "svelte-tiny-virtual-list";
 
   import { currentResults, currentRip, likes, playlists } from "../stores";
@@ -10,9 +11,10 @@
   import Delete from "svelte-material-icons/Delete.svelte";
   import Share from "svelte-material-icons/ShareVariant.svelte";
   import MusicNote from "svelte-material-icons/MusicNote.svelte";
-  import RipBrowser from "./RipBrowser";
+  import RipBrowser, { getSearchExplanation } from "./RipBrowser";
   import { createEventDispatcher, onMount } from "svelte";
   import TowerFilled from "../assets/TowerFilled.svelte";
+  import { slide } from "svelte/transition";
 
   export let browser: RipBrowser;
   export let playlist = null;
@@ -26,7 +28,13 @@
   };
 
   export let searchValue = "";
-  export let searchType: "all" | "jokes" | "titles" = "all";
+  export let searchSort:
+    | "relevance"
+    | "newest"
+    | "oldest"
+    | "alphabetical"
+    | "length" = "relevance";
+  let searchDraft = searchValue;
 
   let start;
   let end;
@@ -92,13 +100,12 @@
 
   function searchAllRips() {
     let currentValue = searchValue;
-    let currentType = searchType;
-    searchValue = "";
-    searchType = "all";
+    let currentType = searchSort;
+    clearSearch();
     playlist = null;
     setTimeout(() => {
       searchValue = currentValue;
-      searchType = currentType;
+      searchSort = currentType;
     }, 100);
   }
 
@@ -129,17 +136,17 @@
     }
   }
 
+  function clearSearch() {
+    searchDraft = "";
+    searchValue = "";
+    searchSort = "relevance";
+  }
+
   $: {
-    if (searchValue && searchValue.length >= 3) {
-      $currentResults = browser.search(
-        searchValue,
-        searchType,
-        "newest",
-        playlist,
-      );
-      //} else if (window.location.search.includes("list=")) {
-      //  let list = window.location.search.split("list=")[1].split("&")[0];
-      //  browser.fetchPlaylist(list).then((r) => ($currentResults = r));
+    if (searchValue && searchValue.length >= 3 && searchSort) {
+      $currentResults = browser.search(searchValue, searchSort, playlist);
+      scrollToIndex = 1;
+      setTimeout(() => (scrollToIndex = 0), 0);
     } else if (playlist) {
       $currentResults = browser.playlist(playlist);
     } else {
@@ -147,9 +154,14 @@
     }
   }
 
+  $: {
+    searchDraft = searchValue;
+  }
+
   let listHeight =
     window.innerHeight - 44 - (window.innerWidth < 1100 ? 60 : 0);
   let itemSize = window.innerWidth < 900 ? 220 : 120;
+  let searchFocused = false;
 </script>
 
 <main>
@@ -157,18 +169,26 @@
     class="search"
     style={`display: ${window.location.search.includes("list=") ? "none" : "flex"}`}
   >
-    <select bind:value={searchType}>
-      <option value="all">All</option>
-      <option value="titles">Titles</option>
-      <option value="jokes">Jokes</option>
-    </select>
+    <button class="clearSearch">
+      <Magnify />
+    </button>
     <input
       type="text"
       placeholder={playlist
         ? "Search this playlist..."
         : "Search thousands of high quality rips..."}
-      value={searchValue}
-      on:change={(e) => (searchValue = e.target.value)}
+      bind:value={searchDraft}
+      on:focus={() => (searchFocused = true)}
+      on:blur={() => (searchFocused = false)}
+      on:keydown={(e) => {
+        if (e.key === "Enter") {
+          searchValue = searchDraft;
+          e.target.blur();
+        }
+      }}
+      on:change={(e) => {
+        searchValue = searchDraft;
+      }}
     />
     <span
       >Showing {start + 1} to {end} of {$currentResults.length} rips {window.location.search.includes(
@@ -177,10 +197,60 @@
         ? "(from YouTube playlist)"
         : ""}</span
     >
-    {#if searchValue.length > 1}
-      <button class="clearSearch" on:click={() => (searchValue = "")}>
+    {#if searchValue.length >= 1}
+      <select bind:value={searchSort}>
+        <option value="relevance">Relevance</option>
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="length">Longest</option>
+        <option value="alphabetical">Alphabetical</option>
+      </select>
+      <button class="clearSearch" on:click={clearSearch}>
         <Close />
       </button>
+    {/if}
+    {#if searchFocused}
+      <div class="search-overlay" in:slide={{ duration: 200, axis: "y" }}>
+        {#if searchDraft && searchDraft.length >= 3}
+          {@const explanations = getSearchExplanation(searchDraft)}
+          <p>Searching for rips...</p>
+          {#each explanations as explanation, i}
+            <p class="operator-help">
+              {explanation[0]} <b>"{explanation[1]}"</b>
+              {explanation[2]}
+              {#if i < explanations.length - 1}
+                {explanation[3]}
+              {/if}
+            </p>
+          {/each}
+          <p class="keybind-hint">
+            Press <span class="keybind">ENTER</span> to search
+          </p>
+        {:else}
+          <p>
+            Try searching a joke, video title, or paste a YouTube video URL. You
+            can also search using operators:
+          </p>
+          <p class="operator-help">
+            <b>title:Circus</b> rips containing Circus in the title
+          </p>
+          <p class="operator-help">
+            <b>joke:"Meet the Flintstones"</b> rips that have Meet the Flintstones
+            in the joke
+          </p>
+          <p class="operator-help">
+            <b>series:DELTARUNE</b> rips from the DELTARUNE game
+          </p>
+          <p class="operator-help">
+            <b>before:2023-01-01</b> rips uploaded before January 1st, 2023
+          </p>
+          <p class="operator-help">
+            Add "not-" before non-date operators to exclude results, e.g.
+            <b>not-joke:"Snow Halation"</b> to find all rips that do NOT have Snow
+            Halation in the joke
+          </p>
+        {/if}
+      </div>
     {/if}
   </div>
   <div
@@ -288,14 +358,15 @@
         {/if}
       </div>
       <div slot="item" let:index let:style {style}>
-        {#key $currentResults[index].ytid}
-          <Rip
-            rip={$currentResults[index]}
-            bind:searchType
-            bind:searchValue
-            on:addToPlaylist={(e) => (addModalVideo = e.detail)}
-          />
-        {/key}
+        {#if $currentResults[index]}
+          {#key $currentResults[index].ytid}
+            <Rip
+              rip={$currentResults[index]}
+              bind:searchValue
+              on:addToPlaylist={(e) => (addModalVideo = e.detail)}
+            />
+          {/key}
+        {/if}
       </div>
       <div slot="footer" class="last">
         {#if playlist !== null && searchValue && searchValue.length >= 3}
@@ -305,9 +376,7 @@
           >
             Search all rips
           </button>
-          <button class="link" on:click={() => (searchValue = "")}>
-            Clear search
-          </button>
+          <button class="link" on:click={clearSearch}> Clear search </button>
         {:else if playlist !== null}
           You've reached the end of the playlist. <button
             class="link"
@@ -331,9 +400,7 @@
           class="link"
           on:click={searchAllRips}>Search all rips</button
         >
-        <button class="link" on:click={() => (searchValue = "")}>
-          Clear search
-        </button>
+        <button class="link" on:click={clearSearch}> Clear search </button>
       {:else if playlist !== null}
         There's nothing in this playlist. <button
           class="link"
@@ -342,7 +409,7 @@
       {:else if searchValue && searchValue.length >= 3}
         You've reached the end of the search results. <button
           class="link"
-          on:click={() => (searchValue = "")}>Clear search</button
+          on:click={clearSearch}>Clear search</button
         >
       {:else}
         You've reached the end of the channel... or have you?
@@ -374,21 +441,22 @@
     flex-direction: column;
   }
   .search {
-    width: calc(100% - 20px);
-    height: 1.5em;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    height: 3em;
     padding: 10px;
-    border-radius: 3px;
     display: flex;
     flex-direction: row;
     gap: 10px;
     background-color: #555;
+    border: 1px solid #777;
   }
   .search .clearSearch {
     background-color: transparent;
     border: none;
     outline: none;
     padding: 0;
-    padding-left: 10px;
   }
   .search select {
     font-size: 1em;
@@ -409,6 +477,43 @@
     flex-grow: 1;
     text-align: right;
     white-space: nowrap;
+  }
+  .search .search-overlay {
+    position: absolute;
+    text-align: left;
+    top: calc(100% - 1px);
+    left: -1px;
+    box-sizing: border-box;
+    width: calc(100% + 2px);
+    background-color: #444;
+    border: 1px solid #777;
+    border-top-color: #444;
+    padding: 10px;
+    z-index: 100;
+  }
+  .search .search-overlay p {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+  }
+  .search .search-overlay p:last-child {
+    margin-bottom: 0;
+  }
+  .search .search-overlay .operator-help {
+    text-indent: 1em;
+    color: #ccc;
+  }
+  .search .search-overlay .keybind-hint {
+    text-align: right;
+    font-size: 0.8em;
+    color: #ccc;
+  }
+  .search .search-overlay .keybind {
+    background-color: #555;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 1rem;
+    font-family: monospace;
   }
   .first {
     width: calc(100% - 20px);

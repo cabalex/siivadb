@@ -38,7 +38,12 @@
     : null;
   let updateScroll;
   let searchValue = "";
-  let searchType: "all" | "jokes" | "titles" = "all";
+  let searchSort:
+    | "relevance"
+    | "newest"
+    | "oldest"
+    | "length"
+    | "alphabetical" = "relevance";
   // shorts state
   let stack = [];
   let shortsSettings: {
@@ -94,13 +99,13 @@
       selectedPlaylist?.createdAt !== oldPlaylist?.createdAt
     ) {
       searchCache.set(oldPlaylist ? oldPlaylist.createdAt : null, [
-        searchType,
+        searchSort,
         searchValue,
       ]);
       oldPlaylist = selectedPlaylist;
-      [searchType, searchValue] = searchCache.get(
+      [searchSort, searchValue] = searchCache.get(
         selectedPlaylist ? selectedPlaylist.createdAt : null,
-      ) || ["all", ""];
+      ) || ["relevance", ""];
     }
   }
 
@@ -214,7 +219,7 @@
       class:active={selectedPlaylist === null}
       on:click={() => {
         if (selectedPlaylist === null) {
-          searchType = "all";
+          searchSort = "relevance";
           searchValue = "";
         }
         selectedPlaylist = null;
@@ -251,7 +256,7 @@
           typeof selectedPlaylist !== "string" &&
           selectedPlaylist.default
         ) {
-          searchType = "all";
+          searchSort = "relevance";
           searchValue = "";
         }
         selectedPlaylist = {
@@ -299,7 +304,7 @@
               typeof selectedPlaylist !== "string" &&
               selectedPlaylist.default
             ) {
-              searchType = "all";
+              searchSort = "relevance";
               searchValue = "";
             }
             selectedPlaylist = {
@@ -355,7 +360,7 @@
       {:else}
         <RipBrowser
           bind:updateScroll
-          bind:searchType
+          bind:searchSort
           bind:searchValue
           browser={$browser}
           bind:playlist={selectedPlaylist}
@@ -390,7 +395,7 @@
   on:scroll={(e) => updateScroll(e.detail)}
   on:search={(e) => {
     searchValue = e.detail.value;
-    searchType = e.detail.type;
+    searchSort = e.detail.type;
   }}
   on:openInShorts={(e) => openInShorts(e.detail)}
 />

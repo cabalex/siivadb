@@ -11,6 +11,110 @@ interface Rip {
   postTime: number;
 }
 
+// Fastest way to check if a string contains another string, case-insensitive
+const includes = (str: string, query: string) =>
+  str.toLowerCase().indexOf(query.toLowerCase()) !== -1;
+
+// Date format "2026-01-01" is interpreted as UTC, so convert it to local time zone
+const timeTZ = (str: string) => {
+  const diff = new Date(str).getTimezoneOffset() * 60 * 1000;
+  const date = new Date(str);
+  return new Date(date.getTime() + diff);
+};
+
+const SEARCH_FILTERS = {
+  "not-joke": (query: string, rip: Rip) => !includes(rip.description, query),
+  joke: (query: string, rip: Rip) => includes(rip.description, query),
+  "not-name": (query: string, rip: Rip) => !includes(rip.rawname, query),
+  name: (query: string, rip: Rip) => includes(rip.rawname, query),
+  "not-title": (query: string, rip: Rip) => !includes(rip.name, query),
+  title: (query: string, rip: Rip) => includes(rip.name, query),
+  "not-series": (query: string, rip: Rip) => !includes(rip.series, query),
+  series: (query: string, rip: Rip) => includes(rip.series, query),
+  before: (query: string, rip: Rip) => {
+    let date = timeTZ(query);
+    if (isNaN(date.getTime())) return true;
+    return rip.postTime < date.getTime();
+  },
+  after: (query: string, rip: Rip) => {
+    let date = timeTZ(query);
+    if (isNaN(date.getTime())) return true;
+    return rip.postTime > date.getTime();
+  },
+};
+
+const SEARCH_EXPLANATIONS = {
+  "not-joke": (query: string) => ["WITHOUT", query, "in the joke"],
+  joke: (query: string) => ["with", query, "in the joke"],
+  "not-title": (query: string) => ["WITHOUT", query, "in the track title"],
+  title: (query: string) => ["with", query, "in the track title"],
+  "not-name": (query: string) => ["WITHOUT", query, "in the video name"],
+  name: (query: string) => ["with", query, "in the video name"],
+  "not-series": (query: string) => ["WITHOUT", query, "in the series name"],
+  series: (query: string) => ["with", query, "in the series name"],
+  before: (query: string) => {
+    let date = timeTZ(query);
+    if (isNaN(date.getTime())) return ["before", "any time", "(invalid date)"];
+    return ["before", date.toLocaleDateString(), ""];
+  },
+  after: (query: string) => {
+    let date = timeTZ(query);
+    if (isNaN(date.getTime())) return ["after", "any time", "(invalid date)"];
+    return ["after", date.toLocaleDateString(), ""];
+  },
+};
+
+const matchFilter = (filter: string, query: string) => {
+  const regex = new RegExp(
+    `${filter}: ?(?:"((?:[^"\\\\]|\\\\.)*)"|([^ "]+))`,
+    "gi",
+  );
+  return regex.exec(query);
+};
+
+export function getSearchExplanation(
+  query: string,
+): [string, string, string, string][] {
+  const explanations = [];
+
+  if (query.length === 11 && query.match(/^[a-zA-Z0-9_-]{11}$/)) {
+    explanations.push([`with`, query, "as the YouTube ID", "OR"]);
+  } else if (query.startsWith("https://")) {
+    // check for youtube url
+    let url = new URL(query);
+    if (url.hostname === "www.youtube.com" || url.hostname === "youtube.com") {
+      let id = url.searchParams.get("v");
+      if (id) {
+        explanations.push([`with`, id, "as the YouTube ID", "OR"]);
+      }
+    } else if (url.hostname === "youtu.be") {
+      let id = url.pathname.slice(1);
+      if (id) {
+        explanations.push([`with`, id, "as the YouTube ID", "OR"]);
+      }
+    }
+  }
+
+  let hasMatch = true;
+  while (hasMatch) {
+    hasMatch = false;
+    for (const [filter, filterFunc] of Object.entries(SEARCH_FILTERS)) {
+      const match = matchFilter(filter, query);
+      let queryMatch = match ? match[1] || match[2] : null;
+      if (queryMatch) {
+        hasMatch = true;
+        query = query.replace(match[0], "").trim();
+        queryMatch = queryMatch.replace(/\\"/g, '"');
+        explanations.push([...SEARCH_EXPLANATIONS[filter](queryMatch), "AND"]);
+      }
+    }
+  }
+  if (query.length > 0) {
+    explanations.push([`containing`, query, "anywhere", ""]);
+  }
+  return explanations;
+}
+
 function dateOffset(time: number) {
   return time + new Date("2016-01-01T00:00:00Z").getTime();
 }
@@ -116,15 +220,18 @@ export default class RipBrowser {
 
   search(
     query: string,
-    searchType: "all" | "jokes" | "titles",
-    sort: "newest" | "oldest" | "alphabetical" = "newest",
+    sort:
+      | "relevance"
+      | "newest"
+      | "oldest"
+      | "length"
+      | "alphabetical" = "relevance",
     playlist: Playlist | null = null,
   ) {
     let results: Rip[] = [];
     let ctx = this.rips;
     if (playlist) {
       ctx = this.playlist(playlist);
-      console.log(ctx);
     }
 
     if (query.length === 11) {
@@ -161,45 +268,65 @@ export default class RipBrowser {
       }
     }
 
-    if (searchType === "jokes") {
-      for (let rip of ctx) {
-        if (rip.description.toLowerCase().includes(query.toLowerCase())) {
-          results.push(rip);
+    const filters = [];
+
+    const searchAll = (query: string, rip: Rip) => {
+      return (
+        rip.rawname.toLowerCase().includes(query.toLowerCase()) ||
+        rip.series.toLowerCase().includes(query.toLowerCase()) ||
+        rip.description.toLowerCase().includes(query.toLowerCase())
+      );
+    };
+
+    let gotMatch = true;
+    while (gotMatch) {
+      gotMatch = false;
+      for (const [filter, filterFunc] of Object.entries(SEARCH_FILTERS)) {
+        const match = matchFilter(filter, query);
+        const queryMatch = match ? match[1] || match[2] : null;
+        if (queryMatch) {
+          gotMatch = true;
+          query = query.replace(match[0], "").trim();
+          console.log(queryMatch.replace(/\\"/g, '"'));
+          filters.push(filterFunc.bind(null, queryMatch.replace(/\\"/g, '"')));
         }
       }
-    } else if (searchType === "titles") {
-      for (let rip of ctx) {
-        if (rip.rawname.toLowerCase().includes(query.toLowerCase())) {
-          results.push(rip);
-        }
-      }
-    } else {
-      for (let rip of ctx) {
-        if (
-          rip.rawname.toLowerCase().includes(query.toLowerCase()) ||
-          rip.description.toLowerCase().includes(query.toLowerCase())
-        ) {
-          results.push(rip);
-        }
+    }
+
+    for (let rip of ctx) {
+      if (
+        filters.every((filter) => filter(rip)) &&
+        (!query || searchAll(query, rip))
+      ) {
+        results.push(rip);
       }
     }
 
     // sort by series
     switch (sort) {
       case "newest":
-        results = results.sort((a, b) => b.postTime - a.postTime);
+        results.sort((a, b) => b.postTime - a.postTime);
+        break;
       case "oldest":
-        results = results.sort((a, b) => a.postTime - b.postTime);
+        results.sort((a, b) => a.postTime - b.postTime);
+        break;
       case "alphabetical":
-        results = results.sort((a, b) => a.rawname.localeCompare(b.rawname));
+        results.sort((a, b) => a.rawname.localeCompare(b.rawname));
+        break;
+      case "length":
+        results.sort((a, b) => b.duration - a.duration);
+        break;
+      case "relevance":
+        results
+          .sort((a, b) => b.postTime - a.postTime)
+          .sort((a, b) => (a.series || "").localeCompare(b.series || ""))
+          .sort((a, b) =>
+            a.name.split(" (")[0].localeCompare(b.name.split(" (")[0]),
+          );
+        break;
     }
 
-    // remove duplicates
-    results = results.filter((rip, index, self) => {
-      return index === self.findIndex((r) => r.ytid === rip.ytid);
-    });
-
-    return results.sort((a, b) => (a.series || "").localeCompare(b.series));
+    return results;
   }
 
   async fetchWithProgress(
@@ -325,10 +452,10 @@ export default class RipBrowser {
       let name, series;
       if (SWAPPED_SERIES.some((s) => rawname.startsWith(s + " - "))) {
         // swap name and series
-        name = rawname.split(" - ");
+        name = rawname.split(/[ ]+-[ ]+/);
         series = name.shift();
       } else {
-        name = rawname.split(" - ");
+        name = rawname.split(/[ ]+-[ ]+/);
         series = "";
         if (name.length > 1) {
           series = name.pop();

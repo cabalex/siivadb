@@ -10,7 +10,6 @@
   import getWikilink from "../assets/getWikilink";
 
   export let rip;
-  export let searchType;
   export let searchValue;
 
   const dispatch = createEventDispatcher();
@@ -62,8 +61,7 @@
           class="series"
           on:click={(e) => {
             e.stopPropagation();
-            searchType = "titles";
-            searchValue = rip.series || "";
+            searchValue = `series:"${rip.series.replace(/"/g, '\\"')}"`;
           }}
         >
           {rip.series || ""}
@@ -72,7 +70,7 @@
       {/if}
       <DateView date={rip.postTime} />
     </div>
-    <Joke bind:searchValue bind:searchType {rip} />
+    <Joke bind:searchValue {rip} />
     <div class="rip-actions" on:click={(e) => e.stopPropagation()}>
       <button on:click={() => dispatch("addToPlaylist", rip)}>
         <PlaylistPlus />

@@ -6,7 +6,6 @@
   export let rip;
   export let player = undefined;
   export let searchValue = "";
-  export let searchType = "all";
   let elem;
 
   const dispatch = createEventDispatcher();
@@ -87,7 +86,7 @@
         "<span class='incomplete'>⚠️ Incomplete list</span>",
       )
       .replace(/''([^<]+?)''/gm, '<span class="link">$1</span>')
-      .replace(/(\d:\d\d)/gm, '<span class="time">$1</span>');
+      .replace(/(\d?\d(:\d\d)+)/gm, '<span class="time">$1</span>');
   }
 
   let jokeHTML = parse(rip.description);
@@ -101,8 +100,7 @@
       link.addEventListener("click", (e) => {
         e.stopPropagation();
         dispatch("link", link.innerText);
-        searchValue = link.innerText;
-        searchType = "jokes";
+        searchValue = `joke:"${link.innerText.replace(/"/g, '\\"')}"`;
       });
     });
 
@@ -112,11 +110,20 @@
       link.addEventListener("click", (e) => {
         const pl = player ?? $playerStore;
         e.stopPropagation();
+        let time = 0;
+        const parts = link.innerText.split(":");
+        if (parts.length === 3) {
+          time =
+            parseInt(parts[0]) * 3600 +
+            parseInt(parts[1]) * 60 +
+            parseInt(parts[2]);
+        } else if (parts.length === 2) {
+          time = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        } else {
+          time = parseInt(link.innerText);
+        }
         if (player || ($currentRip && pl && $currentRip.ytid === rip.ytid)) {
-          pl.seekTo(
-            parseInt(link.innerText.split(":")[0]) * 60 +
-              parseInt(link.innerText.split(":")[1]),
-          );
+          pl.seekTo(time);
         } else {
           currentRip.set(rip);
 
@@ -129,10 +136,7 @@
               setTimeout(seek, 100);
               return;
             }
-            pl.seekTo(
-              parseInt(link.innerText.split(":")[0]) * 60 +
-                parseInt(link.innerText.split(":")[1]),
-            );
+            pl.seekTo(time);
           }
 
           setTimeout(seek, 1000);
