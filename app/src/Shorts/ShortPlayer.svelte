@@ -1,11 +1,12 @@
 <script lang="ts">
   import YouTube from "svelte-youtube";
   import RipBrowser from "../RipBrowser/RipBrowser";
-  import { createEventDispatcher, onMount } from "svelte";
+  import { createEventDispatcher, onMount, tick } from "svelte";
   import Joke from "../assets/Joke.svelte";
   import { likes, options } from "../stores";
   import ThumbUpOutline from "svelte-material-icons/ThumbUpOutline.svelte";
   import YouTubeIcon from "./lib/YouTubeIcon.svelte";
+  import Comment from "svelte-material-icons/Comment.svelte";
   import Pause from "svelte-material-icons/Pause.svelte";
   import Share from "svelte-material-icons/Share.svelte";
   import Notebook from "svelte-material-icons/Notebook.svelte";
@@ -15,6 +16,7 @@
   import { addLike, removeLike } from "./ForYou";
   import LikeIcon from "./lib/LikeIcon.svelte";
   import { fly } from "svelte/transition";
+  import Comments from "./lib/Comments.svelte";
 
   export let rip: RipBrowser["rips"][0];
   export let position = 0;
@@ -61,6 +63,7 @@
     oldPosition = position;
     oldOffset = offset;
     descriptionExpanded = false;
+    commentsOpen = false;
 
     setTimeout(() => {
       scrollDirection = null;
@@ -206,14 +209,17 @@
 
   let paused = false;
   let descriptionExpanded = false;
+  let descriptionTouch = { y: 0, scroll: 0 };
   let expandedDescriptionHeight = 0;
   let descriptionExpandable = false;
   let descriptionElem;
+  let commentsOpen = false;
 
   $: {
     if (rip !== oldRip) {
       error = null;
       descriptionExpanded = false;
+      commentsOpen = false;
       setTimeout(() => {
         descriptionExpandable = isDescriptionExpandable();
       }, 0);
@@ -238,20 +244,29 @@
   function toggleDescription(e: MouseEvent) {
     if (!$options.showJokes || !isDescriptionExpandable()) {
       descriptionExpanded = false;
+      commentsOpen = false;
       return;
     }
     e.stopPropagation();
     descriptionExpanded = !descriptionExpanded;
     if (!descriptionExpanded) {
       descriptionElem.scrollTop = 0;
-      if (showDescriptionTooltip) {
-        localStorage.setItem("siivadb-seenDescriptionTooltip", "true");
-        showDescriptionTooltip = false;
-      }
+      commentsOpen = false;
     } else {
       expandedDescriptionHeight =
         descriptionElem.children[0]?.children[0]?.children[0]?.getBoundingClientRect()
           .height ?? 0;
+    }
+  }
+
+  async function toggleComments(e: MouseEvent | null = null) {
+    commentsOpen = !commentsOpen;
+    if (e) e.stopPropagation();
+    descriptionExpanded = !descriptionExpanded;
+    if (!descriptionExpanded) {
+      descriptionElem.scrollTop = 0;
+    } else {
+      expandedDescriptionHeight = Math.min(400, window.innerHeight * 0.6);
     }
   }
 
@@ -455,6 +470,11 @@
     </button>
     <label for="{rip.ytid}-yt"> Watch </label>
 
+    <button id="{rip.ytid}-comments" on:click={toggleComments}>
+      <Comment />
+    </button>
+    <label for="{rip.ytid}-comments"> Chat </label>
+
     <button
       id="{rip.ytid}-wiki"
       on:click={wiki}
@@ -520,8 +540,8 @@
       <h3 class="series"><DateView date={rip.postTime} /></h3>
     {/if}
     <h2>{rip.name}</h2>
-    {#if $options.showJokes}
-      {#if showDescriptionTooltip && descriptionExpandable}
+    {#if commentsOpen || $options.showJokes}
+      {#if showDescriptionTooltip && descriptionExpandable && !commentsOpen}
         {#if descriptionExpanded}
           <div
             class="description-tooltip"
@@ -544,27 +564,49 @@
           bind:this={descriptionElem}
           on:touchstart={(e) => {
             const target = e.currentTarget;
-            if (target.clientHeight !== target.scrollHeight) {
+            descriptionTouch = {
+              y: e.touches[0].clientY,
+              scroll: target.scrollTop,
+            };
+            if (
+              target.scrollTop !== 0 &&
+              target.scrollTop + target.clientHeight !== target.scrollHeight
+            ) {
               e.stopPropagation();
             }
           }}
           on:touchmove={(e) => {
             const target = e.currentTarget;
-            if (target.clientHeight !== target.scrollHeight) {
+            if (
+              !(
+                descriptionTouch.scroll + target.clientHeight ===
+                  target.scrollHeight &&
+                descriptionTouch.y > e.touches[0].clientY
+              ) &&
+              !(
+                descriptionTouch.scroll === 0 &&
+                descriptionTouch.y < e.touches[0].clientY
+              )
+            ) {
               e.stopPropagation();
             }
           }}
           on:wheel={(e) => e.stopPropagation()}
         >
-          <Joke
-            {player}
-            {rip}
-            on:link={(e) => dispatch("fetchJokes", e.detail)}
-          />
+          {#if commentsOpen}
+            <Comments {rip} on:close={() => toggleComments()} />
+          {:else}
+            <Joke
+              {player}
+              {rip}
+              on:link={(e) => dispatch("fetchJokes", e.detail)}
+            />
+          {/if}
         </div>
       {/key}
     {/if}
   </header>
+
   <div
     class="progress-bar"
     class:seeking={overrideProgress !== null}
@@ -687,7 +729,6 @@
     margin: 5px 0 0 0;
     font-size: 0.9em;
     color: #ccc;
-    overflow: auto;
     transition: background-color 0.2s ease-in-out;
     overflow: hidden;
     border-radius: 0 0.5rem 0 0;
@@ -735,7 +776,7 @@
     aspect-ratio: unset;
     max-height: max(
       30vh,
-      calc(100dvh - 120px - var(--description-height, 0px) + 56px)
+      calc(100dvh - 120px - (var(--description-height, 0px) + 56px))
     );
   }
   header.expanded {
@@ -751,6 +792,9 @@
     transition:
       max-height 0.2s ease-in-out,
       background-color 0.2s ease-in-out;
+  }
+  :global(header.expanded .description-container:has(.comments)) {
+    overflow: hidden !important;
   }
   .description-tooltip {
     position: absolute;

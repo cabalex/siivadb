@@ -36,38 +36,6 @@
     }
   }
 
-  /* Touch handling */
-  let menuOffset = null;
-  let touchStartY = 0;
-  let touchCurrentY = 0;
-  let isDragging = false;
-  function touchStart(e) {
-    if (e.touches.length === 1) {
-      touchStartY = e.touches[0].clientY;
-      touchCurrentY = touchStartY;
-      isDragging = true;
-    }
-    e.stopPropagation();
-  }
-  function touchMove(e) {
-    if (isDragging && e.touches.length === 1) {
-      touchCurrentY = e.touches[0].clientY;
-    }
-  }
-  function touchEnd() {
-    if (isDragging) {
-      const deltaY = touchCurrentY - touchStartY;
-      isDragging = false;
-      if (deltaY > 50) {
-        // Swipe down to close
-        dispatch("close");
-        return;
-      }
-      touchStartY = 0;
-      touchCurrentY = 0;
-    }
-  }
-
   const dispatch = createEventDispatcher();
 </script>
 

@@ -18,6 +18,7 @@
     playlists,
   } from "./stores";
   import getShort from "./Shorts/ForYou";
+  import Modal from "./assets/Modal.svelte";
 
   type SelectedPlaylist =
     | "shorts"
@@ -66,6 +67,19 @@
       balance: "balanced",
       volume: 100,
     };
+  }
+
+  // Check for YouTube OAuth hash before initializing the hash handler
+  let didAuthorizeYouTube = false;
+  if (window.location.hash.includes("access_token")) {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get("access_token");
+    if (accessToken) {
+      localStorage.setItem("siivadb-yt-access-token", accessToken);
+      didAuthorizeYouTube = true;
+      selectedPlaylist = "shorts"; // Switch to shorts after successful authorization
+      window.close(); // Close the window if possible (as it should be a popup)
+    }
   }
 
   $: {
@@ -399,6 +413,26 @@
   }}
   on:openInShorts={(e) => openInShorts(e.detail)}
 />
+
+{#if didAuthorizeYouTube}
+  <Modal on:close={() => (didAuthorizeYouTube = false)}>
+    <div style="padding: 10px">
+      <h2>sign in success >:]</h2>
+      <p>
+        You can now read comments in-app! Press the Chat button on a rip to view
+        its comments.
+      </p>
+      <p>
+        As a reminder, your Google account information is stored on your device
+        and only sent to YouTube. SiIvaDB and its creator cannot view it.
+      </p>
+      <button
+        style="align-self: flex-end; width: 100%"
+        on:click={() => (didAuthorizeYouTube = false)}>Let's go</button
+      >
+    </div>
+  </Modal>
+{/if}
 
 <style>
   .loading {
