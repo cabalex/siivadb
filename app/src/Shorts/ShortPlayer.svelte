@@ -252,6 +252,10 @@
     if (!descriptionExpanded) {
       descriptionElem.scrollTop = 0;
       commentsOpen = false;
+      if (showDescriptionTooltip) {
+        localStorage.setItem("siivadb-seenDescriptionTooltip", "true");
+        showDescriptionTooltip = false;
+      }
     } else {
       expandedDescriptionHeight =
         descriptionElem.children[0]?.children[0]?.children[0]?.getBoundingClientRect()

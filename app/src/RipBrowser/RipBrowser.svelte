@@ -100,13 +100,13 @@
 
   function searchAllRips() {
     let currentValue = searchValue;
-    let currentType = searchSort;
+    let currentSort = searchSort;
     clearSearch();
     playlist = null;
     setTimeout(() => {
       searchValue = currentValue;
-      searchSort = currentType;
-    }, 100);
+      searchSort = currentSort;
+    }, 0);
   }
 
   function copyPlaylistLink() {
@@ -182,12 +182,12 @@
       on:blur={() => (searchFocused = false)}
       on:keydown={(e) => {
         if (e.key === "Enter") {
-          searchValue = searchDraft;
+          searchValue = searchDraft ?? "";
           e.target.blur();
         }
       }}
       on:change={(e) => {
-        searchValue = searchDraft;
+        searchValue = searchDraft ?? "";
       }}
     />
     <span
@@ -197,7 +197,7 @@
         ? "(from YouTube playlist)"
         : ""}</span
     >
-    {#if searchValue.length >= 1}
+    {#if searchValue?.length >= 1}
       <select bind:value={searchSort}>
         <option value="relevance">Relevance</option>
         <option value="newest">Newest</option>

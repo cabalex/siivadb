@@ -23,6 +23,10 @@ const timeTZ = (str: string) => {
 };
 
 const SEARCH_FILTERS = {
+  "not-contains": (query: string, rip: Rip) =>
+    !includes(rip.description, query) && !includes(rip.rawname, query),
+  contains: (query: string, rip: Rip) =>
+    includes(rip.description, query) || includes(rip.rawname, query),
   "not-joke": (query: string, rip: Rip) => !includes(rip.description, query),
   joke: (query: string, rip: Rip) => includes(rip.description, query),
   "not-name": (query: string, rip: Rip) => !includes(rip.rawname, query),
@@ -44,6 +48,8 @@ const SEARCH_FILTERS = {
 };
 
 const SEARCH_EXPLANATIONS = {
+  "not-contains": (query: string) => ["NOT containing", query, "anywhere"],
+  contains: (query: string) => ["containing", query, "anywhere"],
   "not-joke": (query: string) => ["WITHOUT", query, "in the joke"],
   joke: (query: string) => ["with", query, "in the joke"],
   "not-title": (query: string) => ["WITHOUT", query, "in the track title"],
@@ -76,9 +82,11 @@ export function getSearchExplanation(
   query: string,
 ): [string, string, string, string][] {
   const explanations = [];
+  const order = [];
 
   if (query.length === 11 && query.match(/^[a-zA-Z0-9_-]{11}$/)) {
     explanations.push([`with`, query, "as the YouTube ID", "OR"]);
+    order.push(-1);
   } else if (query.startsWith("https://")) {
     // check for youtube url
     let url = new URL(query);
@@ -86,11 +94,13 @@ export function getSearchExplanation(
       let id = url.searchParams.get("v");
       if (id) {
         explanations.push([`with`, id, "as the YouTube ID", "OR"]);
+        order.push(-1);
       }
     } else if (url.hostname === "youtu.be") {
       let id = url.pathname.slice(1);
       if (id) {
         explanations.push([`with`, id, "as the YouTube ID", "OR"]);
+        order.push(-1);
       }
     }
   }
@@ -106,12 +116,25 @@ export function getSearchExplanation(
         query = query.replace(match[0], "").trim();
         queryMatch = queryMatch.replace(/\\"/g, '"');
         explanations.push([...SEARCH_EXPLANATIONS[filter](queryMatch), "AND"]);
+        order.push(Object.keys(SEARCH_FILTERS).indexOf(filter));
       }
     }
   }
   if (query.length > 0) {
     explanations.push([`containing`, query, "anywhere", ""]);
+    order.push(Infinity);
   }
+
+  // sort explanations by order of filters, then by length of query
+  explanations.sort((a, b) => {
+    const orderA = order[explanations.indexOf(a)];
+    const orderB = order[explanations.indexOf(b)];
+    if (orderA === orderB) {
+      return a[1].length - b[1].length;
+    }
+    return orderA - orderB;
+  });
+
   return explanations;
 }
 
@@ -273,7 +296,6 @@ export default class RipBrowser {
     const searchAll = (query: string, rip: Rip) => {
       return (
         rip.rawname.toLowerCase().includes(query.toLowerCase()) ||
-        rip.series.toLowerCase().includes(query.toLowerCase()) ||
         rip.description.toLowerCase().includes(query.toLowerCase())
       );
     };
@@ -287,7 +309,6 @@ export default class RipBrowser {
         if (queryMatch) {
           gotMatch = true;
           query = query.replace(match[0], "").trim();
-          console.log(queryMatch.replace(/\\"/g, '"'));
           filters.push(filterFunc.bind(null, queryMatch.replace(/\\"/g, '"')));
         }
       }
@@ -319,10 +340,10 @@ export default class RipBrowser {
       case "relevance":
         results
           .sort((a, b) => b.postTime - a.postTime)
-          .sort((a, b) => (a.series || "").localeCompare(b.series || ""))
           .sort((a, b) =>
             a.name.split(" (")[0].localeCompare(b.name.split(" (")[0]),
-          );
+          )
+          .sort((a, b) => (a.series || "").localeCompare(b.series || ""));
         break;
     }
 
@@ -365,7 +386,8 @@ export default class RipBrowser {
 
     let decoder = new ZSTDDecoder();
     await decoder.init();
-    arrayBuffer = decoder.decode(new Uint8Array(arrayBuffer)).buffer;
+    arrayBuffer = decoder.decode(new Uint8Array(arrayBuffer))
+      .buffer as ArrayBuffer;
 
     let view = new DataView(arrayBuffer);
 
