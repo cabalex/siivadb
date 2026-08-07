@@ -598,7 +598,7 @@
           on:wheel={(e) => e.stopPropagation()}
         >
           {#if commentsOpen}
-            <Comments {rip} on:close={() => toggleComments()} />
+            <Comments {player} {rip} on:close={() => toggleComments()} />
           {:else}
             <Joke
               {player}

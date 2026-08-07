@@ -1,11 +1,12 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from "svelte";
-  import Comment from "svelte-material-icons/Comment.svelte";
-  import ThumbUp from "svelte-material-icons/ThumbUp.svelte";
+  import Comment, { type CommentInterface } from "./Comment.svelte";
+  import CommentIcon from "svelte-material-icons/Comment.svelte";
   import OpenInNew from "svelte-material-icons/OpenInNew.svelte";
   import RipBrowser from "../../RipBrowser/RipBrowser";
 
   export let rip: RipBrowser["rips"][number];
+  export let player: unknown;
   const dispatch = createEventDispatcher();
 
   const CLIENT_ID =
@@ -32,30 +33,7 @@
       .replace(/=+$/, "");
   }
 
-  interface Comment {
-    authorChannelId: {
-      value: string;
-    };
-    authorChannelUrl: string;
-    authorDisplayName: string;
-    authorProfileImageUrl: string;
-    canRate: boolean;
-    channelId: string;
-    likeCount: number;
-    publishedAt: string;
-    textDisplay: string;
-    textOriginal: string;
-    updatedAt: string;
-    videoId: string;
-    viewerRating: string;
-    // Property from top level
-    id: string;
-    canReply: boolean;
-    isPublic: boolean;
-    totalReplyCount: number;
-  }
-
-  let comments: null | Comment[] = null;
+  let comments: null | CommentInterface[] = null;
   async function fetchComments(ytid: string) {
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&order=relevance&maxResults=100&videoId=${ytid}&access_token=${AUTH_TOKEN}`,
@@ -153,7 +131,7 @@
   {#if !AUTH_TOKEN}
     <div class="access-required">
       <div class="access-required-header">
-        <Comment />
+        <CommentIcon />
       </div>
       <h2>See what everyone's commenting (beta)</h2>
       <p>
@@ -219,40 +197,7 @@
     >
       {#if comments}
         {#each comments as comment}
-          <div class="comment">
-            <a
-              class="comment-header"
-              href={comment.authorChannelUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src={comment.authorProfileImageUrl}
-                alt={comment.authorDisplayName}
-                referrerpolicy="no-referrer"
-              />
-              <span class="comment-author">{comment.authorDisplayName}</span>
-              <span class="comment-date"
-                >{new Date(comment.publishedAt).toLocaleString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  year: "numeric",
-                  month: "short",
-                  day: "2-digit",
-                })}</span
-              >
-            </a>
-            <p>{@html comment.textDisplay}</p>
-            <p style="font-size: 0.8em; color: #aaa">
-              <ThumbUp />
-              {comment.likeCount}
-              {#if comment.totalReplyCount > 0}
-                •
-                {comment.totalReplyCount}
-                {comment.totalReplyCount === 1 ? "reply" : "replies"}
-              {/if}
-            </p>
-          </div>
+          <Comment {comment} {player} />
         {/each}
       {:else}
         <div class="loading">Loading comments...</div>
@@ -341,36 +286,5 @@
     100% {
       background-position: 100% 50%;
     }
-  }
-  .comment {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-    border-bottom: 1px solid #333;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-  .comment p {
-    margin: 0;
-    overflow-wrap: break-word;
-  }
-  .comment-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    color: white;
-  }
-  .comment-header img {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-  }
-  .comment-author {
-    font-weight: bold;
-  }
-  .comment-date {
-    font-size: 0.8em;
-    color: #aaa;
   }
 </style>
