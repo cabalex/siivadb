@@ -15,6 +15,7 @@
   import { createEventDispatcher, onMount } from "svelte";
   import TowerFilled from "../assets/TowerFilled.svelte";
   import { slide } from "svelte/transition";
+  import DeviceImport from "./DeviceImport/DeviceImport.svelte";
 
   export let browser: RipBrowser;
   export let playlist = null;
@@ -275,71 +276,29 @@
         end = e.detail.end;
       }}
     >
-      <div slot="header" class="first">
+      <div slot="header">
         {#if playlist !== null && (!searchValue || searchValue.length < 3)}
-          <MusicNote />
-          <div class="text">
-            <h2>{playlist.name}</h2>
-            <span style="color: #aaa">
-              {playlist.videos.length} rip{playlist.videos.length === 1
-                ? ""
-                : "s"}
-            </span>
-          </div>
-          <button class:copied={playlistCopied} on:click={copyPlaylistLink}>
-            <Share />
-          </button>
-          {#if !playlist?.default}
-            <button class="danger" on:click={deletePlaylist}>
-              <Delete />
-            </button>
-          {/if}
-          {#if $currentResults.length > 0}
-            <button
-              title="Open search in SiIvaShorts"
-              class="siivashorts-btn"
-              on:click={() => dispatch("shorts", $currentResults)}
-            >
-              <TowerFilled />
-              <img
-                src="https://i.ytimg.com/vi/{$currentResults[0]
-                  .ytid}/default.jpg"
-                alt="SiIvaShorts"
-              />
-            </button>
-          {/if}
-        {:else if $currentResults !== browser.rips}
-          <div class="search-header">
-            <span>
-              {$currentResults.length} results
-            </span>
-            {#if $currentResults.length > 0}
-              <button
-                title="Open search in SiIvaShorts"
-                class="siivashorts-btn"
-                on:click={() => dispatch("shorts", $currentResults)}
-              >
-                <TowerFilled />
-                <img
-                  src="https://i.ytimg.com/vi/{$currentResults[0]
-                    .ytid}/default.jpg"
-                  alt="SiIvaShorts"
-                />
-              </button>
-            {/if}
-          </div>
-        {:else}
-          <div class="search-header">
+          <DeviceImport {browser} />
+        {/if}
+        <div class="first">
+          {#if playlist !== null && (!searchValue || searchValue.length < 3)}
+            <MusicNote />
             <div class="text">
-              <span>
-                Welcome to <b>SiIvaDB</b>, a daily updating database of
-                high-quality rips.
-              </span>
-              <span>
-                You can also browse these results in SiIvaShorts by clicking the
-                button on the right.
+              <h2>{playlist.name}</h2>
+              <span style="color: #aaa">
+                {playlist.videos.length} rip{playlist.videos.length === 1
+                  ? ""
+                  : "s"}
               </span>
             </div>
+            <button class:copied={playlistCopied} on:click={copyPlaylistLink}>
+              <Share />
+            </button>
+            {#if !playlist?.default}
+              <button class="danger" on:click={deletePlaylist}>
+                <Delete />
+              </button>
+            {/if}
             {#if $currentResults.length > 0}
               <button
                 title="Open search in SiIvaShorts"
@@ -354,8 +313,55 @@
                 />
               </button>
             {/if}
-          </div>
-        {/if}
+          {:else if $currentResults !== browser.rips}
+            <div class="search-header">
+              <span>
+                {$currentResults.length} results
+              </span>
+              {#if $currentResults.length > 0}
+                <button
+                  title="Open search in SiIvaShorts"
+                  class="siivashorts-btn"
+                  on:click={() => dispatch("shorts", $currentResults)}
+                >
+                  <TowerFilled />
+                  <img
+                    src="https://i.ytimg.com/vi/{$currentResults[0]
+                      .ytid}/default.jpg"
+                    alt="SiIvaShorts"
+                  />
+                </button>
+              {/if}
+            </div>
+          {:else}
+            <div class="search-header">
+              <div class="text">
+                <span>
+                  Welcome to <b>SiIvaDB</b>, a daily updating database of
+                  high-quality rips.
+                </span>
+                <span>
+                  You can also browse these results in SiIvaShorts by clicking
+                  the button on the right.
+                </span>
+              </div>
+              {#if $currentResults.length > 0}
+                <button
+                  title="Open search in SiIvaShorts"
+                  class="siivashorts-btn"
+                  on:click={() => dispatch("shorts", $currentResults)}
+                >
+                  <TowerFilled />
+                  <img
+                    src="https://i.ytimg.com/vi/{$currentResults[0]
+                      .ytid}/default.jpg"
+                    alt="SiIvaShorts"
+                  />
+                </button>
+              {/if}
+            </div>
+          {/if}
+        </div>
       </div>
       <div slot="item" let:index let:style {style}>
         {#if $currentResults[index]}
