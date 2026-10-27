@@ -188,11 +188,17 @@ class ForYouAggregator {
         }
       }
       const choices = [...this.weights.entries()].filter(
-        ([, weight]) => weight === maxWeight,
+        ([ytid, weight]) =>
+          weight === maxWeight &&
+          !this.tempSeen.has(ytid) &&
+          !this.seen.has(ytid),
       );
-      const [chosenYtid] = choices[Math.floor(Math.random() * choices.length)];
-      selectedYtid = chosenYtid;
-      reason = `It had the highest weight (${maxWeight.toFixed(2)})`;
+      if (choices.length > 0) {
+        const [chosenYtid] =
+          choices[Math.floor(Math.random() * choices.length)];
+        selectedYtid = chosenYtid;
+        reason = `It had the highest weight (${maxWeight.toFixed(2)})`;
+      }
     } else {
       // just pick a random rip
       const eligibleRips = this.ripList.ytids.filter(
@@ -209,9 +215,15 @@ class ForYouAggregator {
       this.weights.delete(selectedYtid);
       this.tempSeen.add(selectedYtid);
     } else {
-      // If no rip, or the random chance didn't hit, just return a random rip
-      const randomIndex = Math.floor(Math.random() * this.ripList.ytids.length);
-      selectedYtid = this.ripList.ytids[randomIndex];
+      // Nothing was selected (e.g. float rounding in the weighted pick).
+      // Prefer an unserved rip; only repeat one if the pool is exhausted.
+      const eligibleRips = this.ripList.ytids.filter(
+        (ytid) => !this.tempSeen.has(ytid) && !this.seen.has(ytid),
+      );
+      const pool = eligibleRips.length > 0 ? eligibleRips : this.ripList.ytids;
+      selectedYtid = pool[Math.floor(Math.random() * pool.length)];
+      this.weights.delete(selectedYtid);
+      this.tempSeen.add(selectedYtid);
       reason = "No reason (random fallback)";
     }
     return { ytid: selectedYtid, reason };
@@ -234,7 +246,7 @@ class ForYouAggregator {
     }
 
     for (const affectedId of affectedRips) {
-      if (this.seen.has(affectedId)) continue;
+      if (this.seen.has(affectedId) || this.tempSeen.has(affectedId)) continue;
       this.weights.set(affectedId, this.computeWeight(affectedId));
     }
   }
